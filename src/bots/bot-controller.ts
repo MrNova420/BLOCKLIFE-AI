@@ -252,14 +252,31 @@ export class BotController {
     const subType = task.data?.subType;
     
     if (subType === 'HARVEST_CROPS') {
-      // Look for mature crops nearby
+      // Look for mature crops at ground level around the bot
       this.botAgent.addRecentEvent('Harvesting crops');
-      await this.moveRandomly(3);
       
-      // Simulate harvesting by breaking blocks below
       const pos = this.client.getPosition();
-      const cropPos: Position = { x: Math.floor(pos.x), y: Math.floor(pos.y) - 1, z: Math.floor(pos.z) };
-      await this.client.breakBlock(cropPos);
+      const cropTypes = ['wheat', 'carrots', 'potatoes', 'beetroots', 'melon', 'pumpkin'];
+      
+      // Search for crops at bot's Y level (not below)
+      for (let dx = -2; dx <= 2; dx++) {
+        for (let dz = -2; dz <= 2; dz++) {
+          const checkPos: Position = {
+            x: Math.floor(pos.x) + dx,
+            y: Math.floor(pos.y),
+            z: Math.floor(pos.z) + dz
+          };
+          
+          const block = this.client.getBlockAt(checkPos);
+          if (block && cropTypes.some(c => block.type.includes(c))) {
+            await this.client.breakBlock(checkPos);
+            return;
+          }
+        }
+      }
+      
+      // No crops found, move around
+      await this.moveRandomly(5);
     } else {
       // Tend farm - just move around farm area
       this.botAgent.addRecentEvent('Tending the farm');
@@ -302,13 +319,19 @@ export class BotController {
     
     this.botAgent.addRecentEvent('Chopping wood');
     
-    // Look for wood blocks nearby and break them
+    // Wood block types to look for
+    const woodTypes = [
+      'oak_log', 'spruce_log', 'birch_log', 'jungle_log', 'acacia_log', 'dark_oak_log',
+      'mangrove_log', 'cherry_log', 'crimson_stem', 'warped_stem',
+      'oak_wood', 'spruce_wood', 'birch_wood', 'jungle_wood', 'acacia_wood', 'dark_oak_wood'
+    ];
+    
     const pos = this.client.getPosition();
     
     // Check blocks around for wood
-    for (let dx = -2; dx <= 2; dx++) {
-      for (let dz = -2; dz <= 2; dz++) {
-        for (let dy = 0; dy <= 3; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      for (let dz = -3; dz <= 3; dz++) {
+        for (let dy = 0; dy <= 5; dy++) {
           const checkPos: Position = {
             x: Math.floor(pos.x) + dx,
             y: Math.floor(pos.y) + dy,
@@ -316,7 +339,7 @@ export class BotController {
           };
           
           const block = this.client.getBlockAt(checkPos);
-          if (block && (block.type.includes('log') || block.type.includes('wood'))) {
+          if (block && woodTypes.some(w => block.type.includes(w))) {
             await this.client.breakBlock(checkPos);
             return;
           }
