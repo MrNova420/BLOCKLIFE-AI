@@ -11,4 +11,18 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   verbose: true,
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        target: 'ES2022',
+        module: 'commonjs',
+        lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+        esModuleInterop: true,
+        skipLibCheck: true,
+        strict: true,
+        noImplicitAny: false,
+        types: ['jest', 'node']
+      }
+    }
+  }
 };

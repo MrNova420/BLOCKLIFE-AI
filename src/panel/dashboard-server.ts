@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { getSimEngine, initializeSimEngine } from '../simulation/sim-engine';
 import { getBotManager } from '../bots/bot-manager';
+import { getConnectionManager } from '../bots/connection-manager';
 import { getAiClient, initializeAiClient } from '../mind/ai-client';
 import { loadConfig, getConfig, saveConfig } from '../utils/config';
 import { createLogger } from '../utils/logger';
@@ -21,6 +22,7 @@ import { getWebResearch } from '../mind/web-research';
 import { getConsciousnessManager } from '../mind/bot-consciousness';
 import { getProgressionTracker, ProgressionCategory } from '../utils/progression-tracker';
 import { getStabilityManager } from '../utils/stability-manager';
+import { MinecraftEdition } from '../types';
 
 const execAsync = promisify(exec);
 const logger = createLogger('dashboard');
@@ -250,6 +252,9 @@ export class DashboardServer {
         case '/api/system/health':
           return this.sendJson(res, this.getSystemHealth());
         
+        case '/api/connection/status':
+          return this.sendJson(res, this.getConnectionStatus());
+        
         case '/api/bot/memories':
           return this.sendJson(res, this.getBotMemories(url));
         
@@ -299,6 +304,9 @@ export class DashboardServer {
         
         case '/api/server/disconnect':
           return this.sendJson(res, await this.disconnectFromServer());
+        
+        case '/api/bots/spawn':
+          return this.sendJson(res, await this.spawnBots(data));
         
         case '/api/models/install':
           return this.sendJson(res, await this.installModel(data.modelId));
@@ -521,18 +529,61 @@ export class DashboardServer {
       currentConfig.minecraft.version = config.version;
       saveConfig(currentConfig);
       
-      this.state.connectedToServer = true;
-      this.state.serverEdition = config.edition;
+      // Use the connection manager
+      const connectionManager = getConnectionManager();
+      const result = await connectionManager.connect({
+        host: config.host,
+        port: config.port,
+        edition: config.edition as MinecraftEdition,
+        version: config.version,
+        usernamePrefix: 'BlockLife'
+      });
       
-      return { success: true, message: `Connected to ${config.host}:${config.port}` };
+      if (result.success) {
+        this.state.connectedToServer = true;
+        this.state.serverEdition = config.edition;
+      }
+      
+      return result;
     } catch (error) {
       return { success: false, error: String(error) };
     }
   }
 
   private async disconnectFromServer(): Promise<any> {
-    this.state.connectedToServer = false;
-    return { success: true, message: 'Disconnected from server' };
+    try {
+      const connectionManager = getConnectionManager();
+      await connectionManager.disconnect();
+      this.state.connectedToServer = false;
+      return { success: true, message: 'Disconnected from server' };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private async spawnBots(config: { count: number }): Promise<any> {
+    try {
+      const connectionManager = getConnectionManager();
+      const result = await connectionManager.spawnPopulation({
+        count: config.count,
+        delay: 300 // 300ms between spawns
+      });
+      return result;
+    } catch (error) {
+      return { success: false, error: String(error), bots: [] };
+    }
+  }
+
+  private getConnectionStatus(): any {
+    try {
+      const connectionManager = getConnectionManager();
+      return {
+        success: true,
+        data: connectionManager.getStatus()
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   }
 
   private async handleChat(message: string): Promise<any> {
@@ -631,7 +682,32 @@ export class DashboardServer {
     if (lower.includes('create') && lower.includes('bot')) {
       const match = message.match(/(\d+)/);
       const count = match ? parseInt(match[1]) : 1;
-      return `Creating ${count} new bot(s)...`;
+      
+      if (!this.state.connectedToServer) {
+        return `You need to connect to a server first before spawning bots. Try "connect to localhost:25565"`;
+      }
+      
+      const result = await this.spawnBots({ count });
+      if (result.success) {
+        return `✅ Spawned ${result.bots.length} bots! They are now living in the village and ready to work.\n\nUse "status" to see them, or give them commands like "build a house" or "gather wood".`;
+      }
+      return `Error spawning bots: ${result.error}`;
+    }
+    
+    // Spawn population command
+    if (lower.includes('spawn') && (lower.includes('population') || lower.includes('villager') || lower.includes('civilian'))) {
+      const match = message.match(/(\d+)/);
+      const count = match ? parseInt(match[1]) : 10;
+      
+      if (!this.state.connectedToServer) {
+        return `You need to connect to a server first. Try "connect to localhost:25565"`;
+      }
+      
+      const result = await this.spawnBots({ count });
+      if (result.success) {
+        return `🏘️ Population spawned! ${result.bots.length} civilians have joined your village.\n\nThey will now begin their daily lives - farming, building, crafting, and socializing.`;
+      }
+      return `Error: ${result.error}`;
     }
 
     // Default - send to AI for interpretation
@@ -647,9 +723,11 @@ export class DashboardServer {
     try {
       const sim = getSimEngine();
       const bots = getBotManager();
+      const connectionManager = getConnectionManager();
       const state = sim.getState();
       const allBots = bots.getAllBots();
       const living = allBots.filter(b => !b.isDead());
+      const connStatus = connectionManager.getStatus();
 
       return {
         success: true,
@@ -660,7 +738,9 @@ export class DashboardServer {
           population: living.length,
           villages: state.villages.length,
           simulationRunning: this.state.simulationRunning,
-          connectedToServer: this.state.connectedToServer
+          connectedToServer: this.state.connectedToServer,
+          connectionState: connStatus.state,
+          connectedBots: connStatus.connectedBots
         }
       };
     } catch {
