@@ -149,25 +149,50 @@ export class JavaEditionClient implements IMinecraftClient {
       });
 
       return new Promise((resolve, reject) => {
-        this.bot.once('spawn', () => {
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (!this.connected) {
+            const err = new Error(`Connection timeout after 30 seconds to ${this.config.host}:${this.config.port}`);
+            logger.error(`[Java] ${err.message}`);
+            this.emit('error', err);
+            reject(err);
+          }
+        }, 30000);
+
+        this.bot.once('spawn', async () => {
+          clearTimeout(connectionTimeout);
           this.connected = true;
           logger.info(`[Java] ${this.username} spawned successfully`);
+          
+          // Load pathfinder plugin after spawn
+          try {
+            const pathfinder = await import('mineflayer-pathfinder');
+            this.bot.loadPlugin(pathfinder.pathfinder);
+            logger.debug(`[Java] Pathfinder plugin loaded for ${this.username}`);
+          } catch (pathErr) {
+            logger.warn(`[Java] Could not load pathfinder: ${pathErr}`);
+          }
+          
           this.emit('spawn');
           resolve();
         });
 
         this.bot.once('error', (err: Error) => {
+          clearTimeout(connectionTimeout);
           logger.error(`[Java] Connection error: ${err.message}`);
           this.emit('error', err);
           reject(err);
         });
 
         this.bot.once('kicked', (reason: string) => {
+          clearTimeout(connectionTimeout);
           logger.warn(`[Java] ${this.username} was kicked: ${reason}`);
+          this.connected = false;
           this.emit('kicked', reason);
         });
 
         this.bot.once('end', () => {
+          clearTimeout(connectionTimeout);
           this.connected = false;
           this.emit('end');
         });
@@ -248,16 +273,30 @@ export class JavaEditionClient implements IMinecraftClient {
     if (!this.bot) return false;
     
     try {
-      // Use pathfinder if available
-      const { goals, Movements } = await import('mineflayer-pathfinder');
-      const mcData = await import('minecraft-data');
-      const data = (mcData as any).default(this.bot.version);
-      
-      const movements = new Movements(this.bot);
-      this.bot.pathfinder.setMovements(movements);
-      
-      await this.bot.pathfinder.goto(new goals.GoalNear(position.x, position.y, position.z, 1));
-      return true;
+      // Check if pathfinder is loaded
+      if (this.bot.pathfinder) {
+        const { goals, Movements } = await import('mineflayer-pathfinder');
+        
+        const movements = new Movements(this.bot);
+        this.bot.pathfinder.setMovements(movements);
+        
+        await this.bot.pathfinder.goto(new goals.GoalNear(position.x, position.y, position.z, 1));
+        return true;
+      } else {
+        // Fallback: Simple movement without pathfinding
+        // Just set control states to move toward target
+        const currentPos = this.getPosition();
+        
+        // Look at target
+        this.lookAt(position);
+        
+        // Move forward for a bit
+        this.bot.setControlState('forward', true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        this.bot.setControlState('forward', false);
+        
+        return true;
+      }
     } catch (error) {
       logger.debug(`[Java] MoveTo failed: ${error}`);
       return false;
@@ -497,7 +536,18 @@ export class BedrockEditionClient implements IMinecraftClient {
       this.client = bedrock.createClient(options);
 
       return new Promise((resolve, reject) => {
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (!this.connected) {
+            const err = new Error(`Connection timeout after 30 seconds to ${this.config.host}:${this.config.port}`);
+            logger.error(`[Bedrock] ${err.message}`);
+            this.emit('error', err);
+            reject(err);
+          }
+        }, 30000);
+
         this.client.on('join', () => {
+          clearTimeout(connectionTimeout);
           this.connected = true;
           logger.info(`[Bedrock] ${this.username} joined successfully`);
           this.emit('spawn');
@@ -505,18 +555,21 @@ export class BedrockEditionClient implements IMinecraftClient {
         });
 
         this.client.on('error', (err: Error) => {
+          clearTimeout(connectionTimeout);
           logger.error(`[Bedrock] Connection error: ${err.message}`);
           this.emit('error', err);
           reject(err);
         });
 
         this.client.on('disconnect', (packet: any) => {
+          clearTimeout(connectionTimeout);
           logger.warn(`[Bedrock] ${this.username} disconnected: ${packet.reason || 'Unknown'}`);
           this.connected = false;
           this.emit('kicked', packet.reason || 'Disconnected');
         });
 
         this.client.on('close', () => {
+          clearTimeout(connectionTimeout);
           this.connected = false;
           this.emit('end');
         });
