@@ -3,7 +3,8 @@
     "host": "localhost",
     "port": 25565,
     "version": "1.20.4",
-    "usernamePrefix": "BlockLife_"
+    "usernamePrefix": "BlockLife_",
+    "edition": "java"
   },
   "simulation": {
     "performanceMode": "AUTO",

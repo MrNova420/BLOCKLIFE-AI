@@ -37,3 +37,8 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# BlockLife data
+data/
+models/
+*.log

@@ -26,7 +26,8 @@ const DEFAULT_MINECRAFT_CONFIG: MinecraftConfig = {
   host: 'localhost',
   port: 25565,
   version: '1.20.4',
-  usernamePrefix: 'BlockLife_'
+  usernamePrefix: 'BlockLife_',
+  edition: 'java'
 };
 
 const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
@@ -39,13 +40,17 @@ const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
 };
 
 const DEFAULT_AI_CONFIG: AiConfig = {
-  provider: 'stub',
-  model: 'tinyllama-1b',
+  provider: 'ollama',
+  model: 'tinyllama',
   maxBatchSize: 10,
   minBatchSize: 3,
-  decisionIntervalMs: 8000,
-  timeoutMs: 5000,
-  fallbackEnabled: true
+  decisionIntervalMs: 5000,
+  timeoutMs: 30000,
+  fallbackEnabled: true,
+  ollama: {
+    host: 'localhost',
+    port: 11434
+  }
 };
 
 const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
@@ -126,8 +131,15 @@ export function loadConfig(configPath?: string): AppConfig {
 /**
  * Save current configuration to file
  */
-export function saveConfig(configPath?: string): void {
-  const filePath = configPath || './config/default.json';
+export function saveConfig(configOrPath?: Partial<AppConfig> | string): void {
+  let filePath = './config/default.json';
+  
+  // If first arg is an object, it's a config update
+  if (typeof configOrPath === 'object' && configOrPath !== null) {
+    currentConfig = deepMerge(currentConfig, configOrPath);
+  } else if (typeof configOrPath === 'string') {
+    filePath = configOrPath;
+  }
   
   try {
     const dir = path.dirname(filePath);
