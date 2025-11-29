@@ -195,12 +195,40 @@ Edit `config/default.json`:
 
 ## Termux Setup (Android)
 
+BlockLife is designed to work on Android via Termux. Some advanced features that require native compilation (like local AI models) may not be available, but the core simulation works great.
+
+### Quick Install
+
 ```bash
-pkg install nodejs
+# Install Node.js
+pkg update && pkg install nodejs-lts git python
+
+# Clone the repository
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-npm install && npm start
+
+# Run the Termux-specific setup script
+bash scripts/setup-termux.sh
 ```
+
+### Manual Install
+
+```bash
+pkg update && pkg install nodejs-lts git python
+git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
+cd BLOCKLIFE-AI
+npm install --ignore-scripts
+node scripts/postinstall.js
+npm run build
+npm start
+```
+
+### Termux Notes
+
+- **Optional dependencies**: Some optional dependencies (like `better-sqlite3`, `node-llama-cpp`) may fail to install on Termux due to native compilation requirements. This is expected and will not affect core functionality.
+- **AI Models**: Local AI models via Ollama may not work on Android. Use the "Built-in Rules (No AI)" option in the dashboard.
+- **Performance**: Use ECO mode for better battery life and performance on mobile devices.
+- **Storage**: Data is stored in the `data/` directory within the BlockLife folder.
 
 ---
 
@@ -240,6 +268,24 @@ blocklife-ai/
 - Use ECO mode in the dashboard
 - Reduce bot count
 - Use TinyLlama instead of larger models
+
+### npm install failing on Termux/Android?
+Some optional dependencies like `better-sqlite3` require native compilation and may fail on Termux due to missing Android NDK. This is **expected behavior** and doesn't affect core functionality.
+
+**Solution:**
+```bash
+# Use the Termux-specific setup script
+bash scripts/setup-termux.sh
+
+# Or install manually, ignoring scripts
+npm install --ignore-scripts
+node scripts/postinstall.js
+npm run build
+npm start
+```
+
+### Error: "gyp: Undefined variable android_ndk_path"
+This error occurs when trying to compile native modules on Termux/Android. The affected packages (`better-sqlite3`, `node-llama-cpp`) are optional and not required for core functionality. Use the Termux setup script or `npm install --ignore-scripts` as shown above.
 
 ---
 

@@ -145,7 +145,7 @@ export class WarfareManager {
     if (!village1 || !village2) return;
     
     // Update village1's view of village2
-    let relation1 = village1.villageRelations.find(r => r.targetVillageId === village2Id);
+    const relation1 = village1.villageRelations.find(r => r.targetVillageId === village2Id);
     if (relation1) {
       relation1.state = state;
     } else {
@@ -158,7 +158,7 @@ export class WarfareManager {
     }
     
     // Update village2's view of village1
-    let relation2 = village2.villageRelations.find(r => r.targetVillageId === village1Id);
+    const relation2 = village2.villageRelations.find(r => r.targetVillageId === village1Id);
     if (relation2) {
       relation2.state = state;
     } else {
