@@ -559,7 +559,7 @@ let storageInstance: StorageLayer | null = null;
 /**
  * Check if better-sqlite3 is available
  */
-function isSqliteAvailable(): boolean {
+export function isSqliteAvailable(): boolean {
   try {
     require('better-sqlite3');
     return true;
