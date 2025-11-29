@@ -217,7 +217,7 @@ bash scripts/setup-termux.sh
 pkg update && pkg install nodejs-lts git python
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-npm install --ignore-scripts
+npm install --omit=optional
 node scripts/postinstall.js
 npm run build
 npm start
@@ -274,18 +274,18 @@ Some optional dependencies like `better-sqlite3` require native compilation and 
 
 **Solution:**
 ```bash
-# Use the Termux-specific setup script
+# Use the Termux-specific setup script (recommended)
 bash scripts/setup-termux.sh
 
-# Or install manually, ignoring scripts
-npm install --ignore-scripts
+# Or install manually, omitting optional dependencies
+npm install --omit=optional
 node scripts/postinstall.js
 npm run build
 npm start
 ```
 
 ### Error: "gyp: Undefined variable android_ndk_path"
-This error occurs when trying to compile native modules on Termux/Android. The affected packages (`better-sqlite3`, `node-llama-cpp`) are optional and not required for core functionality. Use the Termux setup script or `npm install --ignore-scripts` as shown above.
+This error occurs when trying to compile native modules on Termux/Android. The affected packages (`better-sqlite3`, `node-llama-cpp`) are optional and not required for core functionality. Use the Termux setup script or `npm install --omit=optional` as shown above.
 
 ---
 

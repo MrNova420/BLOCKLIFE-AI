@@ -40,13 +40,23 @@ echo ""
 echo "Installing BlockLife dependencies..."
 cd "$(dirname "$0")/.."
 
-# Install dependencies, ignoring optional dependency failures
-# Optional dependencies like better-sqlite3 may fail on Termux but are not required
-echo "Note: Some optional dependencies may fail to install on Android/Termux."
-echo "This is expected and will not affect core functionality."
-npm install --ignore-scripts 2>&1 || true
+# Install dependencies, omitting optional ones that require native compilation
+# Optional dependencies like better-sqlite3 and node-llama-cpp require native 
+# build tools that are not available on Termux/Android
+echo "Note: Skipping optional dependencies (not available on Termux)."
+echo "Core functionality will work normally."
+echo ""
 
-# Run postinstall script manually (safer than running all scripts)
+npm install --omit=optional
+install_status=$?
+
+if [ $install_status -ne 0 ]; then
+    echo ""
+    echo "Warning: npm install completed with errors."
+    echo "Attempting to continue..."
+fi
+
+# Run postinstall script manually
 echo ""
 echo "Running setup script..."
 node scripts/postinstall.js
