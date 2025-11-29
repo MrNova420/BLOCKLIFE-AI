@@ -231,8 +231,9 @@ async function main(): Promise<void> {
   process.on('uncaughtException', (error) => {
     logger.error('Uncaught exception', error);
     const stability = getStabilityManager();
+    const config = stability.getConfig();
     // Don't shutdown on every error - let stability manager handle recovery
-    if (stability.getHealth().consecutiveFailures >= 5) {
+    if (stability.getHealth().consecutiveFailures >= config.maxConsecutiveFailures) {
       shutdown('uncaughtException');
     } else {
       logger.warn('Attempting to recover from error...');

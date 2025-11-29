@@ -695,9 +695,9 @@ export class StabilityManager {
         const data = fs.readFileSync(this.config.persistencePath, 'utf-8');
         const state: RecoveryState = JSON.parse(data);
         
-        // Check if state is recent (within 1 hour)
+        // Check if state is recent (within configured max log age)
         const age = Date.now() - state.timestamp;
-        if (age < 3600000) {
+        if (age < this.config.maxLogAgeMs) {
           logger.info('Found recent session state, notifying recovery handlers');
           this.notifyRecovery(state);
         } else {
@@ -833,29 +833,39 @@ export class StabilityManager {
       [HealthStatus.RECOVERING]: '🔄'
     };
     
+    // Use a fixed line width for consistent formatting
+    const lineWidth = 70;
+    const padLine = (label: string, value: string): string => {
+      const content = `  ${label}: ${value}`;
+      const padding = lineWidth - content.length - 1;
+      return `║${content}${' '.repeat(Math.max(0, padding))}║`;
+    };
+    
+    const memoryInfo = `${h.memory.usedMb}MB / ${h.memory.totalMb}MB (${h.memory.percent}%)`;
+    
     return `
-╔══════════════════════════════════════════════════════════════════════╗
-║                    SYSTEM HEALTH STATUS                              ║
-╠══════════════════════════════════════════════════════════════════════╣
-║                                                                      ║
-║  Overall Status: ${statusEmoji[h.status]} ${h.status.padEnd(47)}║
-║  Uptime: ${h.uptime.formatted.padEnd(57)}║
-║                                                                      ║
-║  MEMORY                                                              ║
-║    Status: ${statusEmoji[h.memory.status]} ${h.memory.status.padEnd(53)}║
-║    Usage: ${String(h.memory.usedMb).padEnd(6)}MB / ${String(h.memory.totalMb).padEnd(6)}MB (${String(h.memory.percent)}%)${' '.repeat(30)}║
-║                                                                      ║
-║  CPU                                                                 ║
-║    Status: ${statusEmoji[h.cpu.status]} ${h.cpu.status.padEnd(53)}║
-║    Usage: ${String(h.cpu.percent).padEnd(3)}%${' '.repeat(56)}║
-║    Throttled: ${(h.cpu.throttled ? 'Yes' : 'No').padEnd(52)}║
-║                                                                      ║
-║  STABILITY                                                           ║
-║    Mode: ${h.currentMode.padEnd(57)}║
-║    Consecutive Failures: ${String(h.consecutiveFailures).padEnd(41)}║
-║    Last Health Check: ${new Date(h.lastHealthCheck).toLocaleTimeString().padEnd(44)}║
-║                                                                      ║
-╚══════════════════════════════════════════════════════════════════════╝
+╔${'═'.repeat(lineWidth)}╗
+║${' '.repeat(Math.floor((lineWidth - 20) / 2))}SYSTEM HEALTH STATUS${' '.repeat(Math.ceil((lineWidth - 20) / 2))}║
+╠${'═'.repeat(lineWidth)}╣
+║${' '.repeat(lineWidth)}║
+${padLine('Overall Status', `${statusEmoji[h.status]} ${h.status}`)}
+${padLine('Uptime', h.uptime.formatted)}
+║${' '.repeat(lineWidth)}║
+║  MEMORY${' '.repeat(lineWidth - 9)}║
+${padLine('  Status', `${statusEmoji[h.memory.status]} ${h.memory.status}`)}
+${padLine('  Usage', memoryInfo)}
+║${' '.repeat(lineWidth)}║
+║  CPU${' '.repeat(lineWidth - 6)}║
+${padLine('  Status', `${statusEmoji[h.cpu.status]} ${h.cpu.status}`)}
+${padLine('  Usage', `${h.cpu.percent}%`)}
+${padLine('  Throttled', h.cpu.throttled ? 'Yes' : 'No')}
+║${' '.repeat(lineWidth)}║
+║  STABILITY${' '.repeat(lineWidth - 12)}║
+${padLine('  Mode', h.currentMode)}
+${padLine('  Consecutive Failures', String(h.consecutiveFailures))}
+${padLine('  Last Health Check', new Date(h.lastHealthCheck).toLocaleTimeString())}
+║${' '.repeat(lineWidth)}║
+╚${'═'.repeat(lineWidth)}╝
     `.trim();
   }
   
