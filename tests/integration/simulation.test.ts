@@ -14,6 +14,10 @@ import TechTreeManager from '../../src/simulation/tech-tree';
 import WarfareManager from '../../src/simulation/warfare';
 import { Role, TechAge, LifeStage, Gender, RelationState } from '../../src/types';
 
+// Test constants
+const SIMULATION_TICKS = 100;
+const QUICK_SIMULATION_TICKS = 50;
+
 describe('BlockLife Integration Tests', () => {
   
   describe('Village Lifecycle', () => {
@@ -84,7 +88,7 @@ describe('BlockLife Integration Tests', () => {
       const initialFood = village.stockpile.food;
       
       // Run several ticks
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < SIMULATION_TICKS; i++) {
         simEngine.tick(1000);
       }
       
@@ -282,7 +286,7 @@ describe('BlockLife Integration Tests', () => {
       
       // Run simulation for multiple ticks
       expect(() => {
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < QUICK_SIMULATION_TICKS; i++) {
           // Update bots
           botManager.updateAllBots(300);
           
@@ -316,7 +320,7 @@ describe('BlockLife Integration Tests', () => {
       }
       
       // Run simulation
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < SIMULATION_TICKS; i++) {
         botManager.updateAllBots(300);
         simEngine.tick(300);
       }
@@ -324,7 +328,7 @@ describe('BlockLife Integration Tests', () => {
       // Verify data integrity
       const state = simEngine.getState();
       expect(state.villages.length).toBe(1);
-      expect(state.currentTick).toBe(100);
+      expect(state.currentTick).toBe(SIMULATION_TICKS);
       expect(botManager.getBotCount()).toBe(initialBotCount);
     });
   });

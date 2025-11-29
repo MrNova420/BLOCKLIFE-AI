@@ -309,18 +309,20 @@ and awareness integration complete.
 ### Persistence (1 file)
 - `src/persistence/storage.ts` - JSON storage
 
-### Tools (1 file)
+### Tools (2 files)
 - `tools/dashboard.ts` - CLI dashboard
+- `tools/status.ts` - CLI status checker
 
-### Tests (1 file)
+### Tests (2 files, 24 tests)
 - `tests/unit/core.test.ts` - Core system tests
+- `tests/integration/simulation.test.ts` - Integration tests
 
 ---
 
 ## Statistics
 
-- **Total Source Files:** 38+
-- **Total Lines of Code:** ~25,000+
+- **Total Source Files:** 40+
+- **Total Lines of Code:** ~26,000+
 - **Technologies:** 20+
 - **Building Blueprints:** 20+
 - **Bot Roles:** 16
@@ -336,6 +338,7 @@ and awareness integration complete.
 - **Weather Conditions:** 9
 - **Seasons:** 4
 - **Unit Tests:** 10 (all passing)
+- **Integration Tests:** 14 (all passing)
 
 ---
 

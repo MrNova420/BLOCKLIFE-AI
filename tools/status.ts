@@ -12,6 +12,7 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const BOTS_FILE = path.join(DATA_DIR, 'bots.json');
 const CIV_FILE = path.join(DATA_DIR, 'civilization.json');
 const VILLAGES_FILE = path.join(DATA_DIR, 'villages.json');
+const DECIMAL_PLACES = 2;
 
 interface StatusInfo {
   botsCount: number;
@@ -144,7 +145,7 @@ function printStatus(): void {
   console.log('📊 SIMULATION STATUS');
   console.log('────────────────────────────────────────────────────────');
   console.log(`   Era:             ${status.era}`);
-  console.log(`   Simulation Days: ${status.simulationDays.toFixed(2)}`);
+  console.log(`   Simulation Days: ${status.simulationDays.toFixed(DECIMAL_PLACES)}`);
   console.log(`   Uptime:          ${status.uptime}`);
   console.log('');
   console.log('👥 POPULATION');
