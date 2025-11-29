@@ -162,8 +162,11 @@ export class ApiServer {
       success: true,
       data: {
         id: data.id, name: data.name, age: data.age, lifeStage: data.lifeStage,
-        role: data.role, village: data.villageId, personality: data.personality,
-        skills: data.skills, needs: data.needs, mood: data.mood, health: data.health,
+        role: data.role, village: data.villageId, 
+        personality: { ...data.personality } as Record<string, number>,
+        skills: { ...data.skills } as Record<string, number>, 
+        needs: { ...data.needs } as Record<string, number>, 
+        mood: data.mood, health: data.health,
         currentTask: data.currentTask?.type,
         relationships: data.relationships.map(r => ({ name: r.targetId, type: r.type, strength: r.strength })),
         recentEvents: []
