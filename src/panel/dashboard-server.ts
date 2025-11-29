@@ -16,6 +16,9 @@ import { loadConfig, getConfig, saveConfig } from '../utils/config';
 import { createLogger } from '../utils/logger';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getSystemStatus } from '../utils/system-status';
+import { getWebResearch } from '../mind/web-research';
+import { getConsciousnessManager } from '../mind/bot-consciousness';
 
 const execAsync = promisify(exec);
 const logger = createLogger('dashboard');
@@ -236,6 +239,18 @@ export class DashboardServer {
         case '/api/chat/history':
           return this.sendJson(res, { success: true, data: this.chatHistory });
         
+        case '/api/system/status':
+          return this.sendJson(res, this.getSystemStatus());
+        
+        case '/api/system/events':
+          return this.sendJson(res, this.getSystemEvents(url));
+        
+        case '/api/bot/memories':
+          return this.sendJson(res, this.getBotMemories(url));
+        
+        case '/api/web-research/status':
+          return this.sendJson(res, this.getWebResearchStatus());
+        
         default:
           return this.sendError(res, 404, 'Not found');
       }
@@ -279,6 +294,12 @@ export class DashboardServer {
         
         case '/api/command':
           return this.sendJson(res, await this.executeCommand(data));
+        
+        case '/api/web-research/toggle':
+          return this.sendJson(res, this.toggleWebResearch(data));
+        
+        case '/api/web-research/search':
+          return this.sendJson(res, await this.performWebSearch(data));
         
         default:
           return this.sendError(res, 404, 'Not found');
@@ -673,6 +694,199 @@ export class DashboardServer {
       };
     } catch {
       return { success: true, data: [] };
+    }
+  }
+
+  // ========== System Status & Monitoring ==========
+
+  private getSystemStatus(): any {
+    try {
+      const status = getSystemStatus();
+      const report = status.getFullStatusReport();
+      
+      // Format times as human-readable
+      const currentTime = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const sessionStart = new Date(report.session.startedAt).toLocaleString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const uptimeMs = report.uptime;
+      const hours = Math.floor(uptimeMs / 3600000);
+      const minutes = Math.floor((uptimeMs % 3600000) / 60000);
+      const uptimeStr = hours > 0 ? `${hours} hours, ${minutes} minutes` : `${minutes} minutes`;
+
+      return {
+        success: true,
+        data: {
+          currentTime,
+          sessionStart,
+          uptime: uptimeStr,
+          systemHealth: report.systemHealth,
+          components: report.components,
+          ai: {
+            ...report.ai,
+            usagePercent: report.aiUsagePercent
+          },
+          session: report.session,
+          performance: report.performance
+        }
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getSystemEvents(url: URL): any {
+    try {
+      const status = getSystemStatus();
+      const category = url.searchParams.get('category') || undefined;
+      const limit = parseInt(url.searchParams.get('limit') || '50');
+      const botId = url.searchParams.get('botId') || undefined;
+      
+      const events = status.getEvents({
+        category: category as any,
+        limit,
+        botId
+      });
+      
+      // Format timestamps as human-readable
+      const formattedEvents = events.map(e => ({
+        ...e,
+        time: new Date(e.timestamp).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      }));
+
+      return {
+        success: true,
+        data: formattedEvents
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getBotMemories(url: URL): any {
+    try {
+      const botId = url.searchParams.get('botId');
+      if (!botId) {
+        return { success: false, error: 'botId parameter required' };
+      }
+      
+      const status = getSystemStatus();
+      const memories = status.getBotMemories(botId);
+      
+      // Format timestamps
+      const formattedMemories = memories.map(m => ({
+        ...m,
+        createdTime: new Date(m.timestamp).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }),
+        lastAccessedTime: new Date(m.lastAccessed).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      }));
+
+      return {
+        success: true,
+        data: formattedMemories
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  // ========== Web Research ==========
+
+  private getWebResearchStatus(): any {
+    try {
+      const webResearch = getWebResearch();
+      return {
+        success: true,
+        data: webResearch.getStatus()
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private toggleWebResearch(data: { enabled: boolean }): any {
+    try {
+      const webResearch = getWebResearch();
+      webResearch.setEnabled(data.enabled);
+      
+      const status = getSystemStatus();
+      status.logEvent({
+        category: 'USER_COMMAND' as any,
+        level: 'INFO' as any,
+        source: 'dashboard',
+        message: `Web research ${data.enabled ? 'enabled' : 'disabled'} by user`
+      });
+
+      return {
+        success: true,
+        message: `Web research ${data.enabled ? 'enabled' : 'disabled'}`,
+        data: webResearch.getStatus()
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private async performWebSearch(data: { query: string; category?: string }): Promise<any> {
+    try {
+      const webResearch = getWebResearch();
+      
+      if (!webResearch.isEnabled()) {
+        return {
+          success: false,
+          error: 'Web research is disabled. Enable it first from settings.'
+        };
+      }
+
+      const result = await webResearch.research({
+        query: data.query,
+        category: (data.category || 'general') as any
+      });
+
+      return {
+        success: result.success,
+        data: {
+          query: result.query,
+          results: result.results,
+          summary: result.summary,
+          fromCache: result.fromCache,
+          searchTime: `${result.searchDurationMs}ms`
+        }
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
   }
 
