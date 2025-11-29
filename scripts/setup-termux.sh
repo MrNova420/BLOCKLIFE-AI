@@ -40,23 +40,21 @@ echo ""
 echo "Installing BlockLife dependencies..."
 cd "$(dirname "$0")/.."
 
-# Install dependencies, omitting optional ones that require native compilation
-# Optional dependencies like better-sqlite3 and node-llama-cpp require native 
-# build tools that are not available on Termux/Android
-echo "Note: Skipping optional dependencies (not available on Termux)."
-echo "Core functionality will work normally."
+# Install all dependencies (optional ones will gracefully fail if needed)
+echo "Installing packages..."
 echo ""
 
-npm install --omit=optional
+npm install
 install_status=$?
 
 if [ $install_status -ne 0 ]; then
     echo ""
-    echo "Warning: npm install completed with errors."
-    echo "Attempting to continue..."
+    echo "Warning: Some optional packages may have failed to install."
+    echo "This is normal on Termux - core functionality will work."
+    echo ""
 fi
 
-# Run postinstall script manually
+# Run postinstall script
 echo ""
 echo "Running setup script..."
 node scripts/postinstall.js
@@ -75,9 +73,15 @@ if npm run build; then
     echo "Or for development:"
     echo "  npm run dev"
     echo ""
-    echo "Note: Some advanced features (like local AI models) may"
-    echo "not be available on Termux due to native module limitations."
-    echo "The core simulation and web dashboard will work normally."
+    echo "Features available:"
+    echo "  ✓ Core simulation engine"
+    echo "  ✓ Web dashboard"
+    echo "  ✓ Java Edition Minecraft support"
+    echo "  ✓ Ollama AI integration"
+    echo ""
+    echo "Note: Bedrock Edition and local AI models require"
+    echo "native modules that may not compile on Termux."
+    echo "Use Java Edition servers and Ollama for best experience."
     echo ""
 else
     echo ""

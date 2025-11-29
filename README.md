@@ -195,12 +195,12 @@ Edit `config/default.json`:
 
 ## Termux Setup (Android)
 
-BlockLife is designed to work on Android via Termux. Some advanced features that require native compilation (like local AI models) may not be available, but the core simulation works great.
+BlockLife is designed to work on Android via Termux. The core simulation, web dashboard, and Java Edition Minecraft support work great on mobile!
 
 ### Quick Install
 
 ```bash
-# Install Node.js
+# Install dependencies
 pkg update && pkg install nodejs-lts git python
 
 # Clone the repository
@@ -217,18 +217,27 @@ bash scripts/setup-termux.sh
 pkg update && pkg install nodejs-lts git python
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-npm install --omit=optional
-node scripts/postinstall.js
+npm install
 npm run build
 npm start
 ```
 
-### Termux Notes
+### What Works on Termux
 
-- **Optional dependencies**: Some optional dependencies (like `better-sqlite3`, `node-llama-cpp`) may fail to install on Termux due to native compilation requirements. This is expected and will not affect core functionality.
-- **AI Models**: Local AI models via Ollama may not work on Android. Use the "Built-in Rules (No AI)" option in the dashboard.
-- **Performance**: Use ECO mode for better battery life and performance on mobile devices.
-- **Storage**: Data is stored in the `data/` directory within the BlockLife folder.
+- ✅ **Core simulation** - Full civilization engine
+- ✅ **Web dashboard** - Control panel at localhost:3000
+- ✅ **Java Edition** - Connect to Java Minecraft servers
+- ✅ **Ollama AI** - Works if Ollama is installed
+- ✅ **Built-in AI rules** - Always works, no external dependencies
+- ⚠️ **Bedrock Edition** - May not work (requires native compilation)
+- ⚠️ **Local AI models** - May not work (requires native compilation)
+
+### Tips for Termux
+
+- **Use Java Edition servers** for best compatibility
+- **Use Ollama or built-in rules** for AI features
+- **Use ECO mode** for better battery life
+- Data is stored in the `data/` directory
 
 ---
 
@@ -270,22 +279,18 @@ blocklife-ai/
 - Use TinyLlama instead of larger models
 
 ### npm install failing on Termux/Android?
-Some optional dependencies like `better-sqlite3` require native compilation and may fail on Termux due to missing Android NDK. This is **expected behavior** and doesn't affect core functionality.
+Some optional dependencies (`bedrock-protocol`, `node-llama-cpp`) require native compilation and may fail on Termux. This won't affect core functionality - the app works without them.
 
 **Solution:**
 ```bash
-# Use the Termux-specific setup script (recommended)
+# Use the Termux setup script (handles everything)
 bash scripts/setup-termux.sh
-
-# Or install manually, omitting optional dependencies
-npm install --omit=optional
-node scripts/postinstall.js
-npm run build
-npm start
 ```
 
+The core features (Java Edition, Ollama AI, web dashboard) work without native modules.
+
 ### Error: "gyp: Undefined variable android_ndk_path"
-This error occurs when trying to compile native modules on Termux/Android. The affected packages (`better-sqlite3`, `node-llama-cpp`) are optional and not required for core functionality. Use the Termux setup script or `npm install --omit=optional` as shown above.
+This error means a native module is trying to compile without Android NDK. The affected packages are optional - the app works without them. Just use the Termux setup script and ignore these warnings.
 
 ---
 
