@@ -5,14 +5,16 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main.js",
+    "start": "npm run build && node dist/main.js",
     "dev": "ts-node src/main.ts",
     "dashboard": "ts-node tools/dashboard.ts",
     "lint": "eslint src/**/*.ts --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "clean": "rm -rf dist",
-    "status": "ts-node tools/status.ts"
+    "status": "ts-node tools/status.ts",
+    "postinstall": "node scripts/postinstall.js",
+    "setup": "node scripts/postinstall.js"
   },
   "keywords": [
     "minecraft",
@@ -21,6 +23,7 @@
     "bot",
     "simulation",
     "mineflayer",
+    "bedrock",
     "autonomous"
   ],
   "author": "WeNova Interactive / Kayden Shawn Massengill",
@@ -38,6 +41,10 @@
     "mineflayer-pathfinder": "^2.4.5",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
+  },
+  "optionalDependencies": {
+    "bedrock-protocol": "^3.51.0",
+    "node-llama-cpp": "^2.8.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",

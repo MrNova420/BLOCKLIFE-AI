@@ -632,23 +632,58 @@ export interface AiCivAdvice {
 // CONFIG INTERFACES
 // ============================================================================
 
+/** Minecraft Edition type */
+export type MinecraftEdition = 'java' | 'bedrock';
+
 /** Minecraft connection config */
 export interface MinecraftConfig {
   host: string;
   port: number;
   version: string;
   usernamePrefix: string;
+  edition: MinecraftEdition;
+  /** Bedrock-specific: Xbox Live authentication */
+  bedrockAuth?: {
+    /** Use device auth flow */
+    deviceAuth?: boolean;
+    /** Cache auth tokens */
+    cacheTokens?: boolean;
+  };
 }
 
 /** AI configuration */
 export interface AiConfig {
-  provider: 'local' | 'remote' | 'stub';
+  provider: 'local' | 'remote' | 'ollama' | 'openai' | 'stub';
   model: string;
   maxBatchSize: number;
   minBatchSize: number;
   decisionIntervalMs: number;
   timeoutMs: number;
   fallbackEnabled: boolean;
+  /** Local model configuration */
+  local?: {
+    modelPath: string;
+    contextSize: number;
+    threads: number;
+    gpuLayers: number;
+  };
+  /** Remote API configuration */
+  remote?: {
+    apiUrl: string;
+    apiKey?: string;
+    headers?: Record<string, string>;
+  };
+  /** Ollama configuration */
+  ollama?: {
+    host: string;
+    port: number;
+  };
+  /** OpenAI configuration */
+  openai?: {
+    apiKey: string;
+    organization?: string;
+    baseUrl?: string;
+  };
 }
 
 /** Logging configuration */

@@ -26,7 +26,8 @@ const DEFAULT_MINECRAFT_CONFIG: MinecraftConfig = {
   host: 'localhost',
   port: 25565,
   version: '1.20.4',
-  usernamePrefix: 'BlockLife_'
+  usernamePrefix: 'BlockLife_',
+  edition: 'java'
 };
 
 const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
@@ -126,8 +127,15 @@ export function loadConfig(configPath?: string): AppConfig {
 /**
  * Save current configuration to file
  */
-export function saveConfig(configPath?: string): void {
-  const filePath = configPath || './config/default.json';
+export function saveConfig(configOrPath?: Partial<AppConfig> | string): void {
+  let filePath = './config/default.json';
+  
+  // If first arg is an object, it's a config update
+  if (typeof configOrPath === 'object' && configOrPath !== null) {
+    currentConfig = deepMerge(currentConfig, configOrPath);
+  } else if (typeof configOrPath === 'string') {
+    filePath = configOrPath;
+  }
   
   try {
     const dir = path.dirname(filePath);

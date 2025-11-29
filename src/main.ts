@@ -6,7 +6,9 @@
  */
 
 import { Orchestrator, getOrchestrator } from './orchestrator';
+import { dashboardServer } from './panel/dashboard-server';
 import { createLogger } from './utils/logger';
+import { loadConfig } from './utils/config';
 
 const logger = createLogger('main');
 
@@ -37,12 +39,20 @@ async function main(): Promise<void> {
   // Get config path from args or environment
   const configPath = process.argv[2] || process.env.BLOCKLIFE_CONFIG;
   
-  // Create orchestrator
+  // Load configuration
+  loadConfig(configPath);
+  
+  // Start dashboard server first (user-friendly entry point)
+  const dashboardPort = parseInt(process.env.DASHBOARD_PORT || '3000');
+  await dashboardServer.start(dashboardPort);
+  
+  // Create orchestrator (but don't start simulation yet - user controls via dashboard)
   const orchestrator = getOrchestrator(configPath);
   
   // Handle shutdown signals
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`Received ${signal}, shutting down...`);
+    dashboardServer.stop();
     await orchestrator.stop();
     process.exit(0);
   };
@@ -60,23 +70,8 @@ async function main(): Promise<void> {
     logger.error('Unhandled rejection', reason);
   });
   
-  try {
-    // Start the orchestrator
-    await orchestrator.start();
-    
-    // Print status every minute
-    setInterval(() => {
-      if (orchestrator.isRunning()) {
-        orchestrator.printStatus();
-      }
-    }, 60000);
-    
-    logger.info('BlockLife is running. Press Ctrl+C to stop.');
-    
-  } catch (error) {
-    logger.error('Failed to start BlockLife', error);
-    process.exit(1);
-  }
+  logger.info('BlockLife is ready. Use the web dashboard to control the simulation.');
+  logger.info('Press Ctrl+C to stop.');
 }
 
 // Run main
