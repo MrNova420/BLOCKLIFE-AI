@@ -195,48 +195,62 @@ Edit `config/default.json`:
 
 ## Termux Setup (Android)
 
-BlockLife is designed to work on Android via Termux. The core simulation, web dashboard, and Java Edition Minecraft support work great on mobile!
+BlockLife works on Android via Termux. There are two setup options depending on what features you need.
 
-### Quick Install
+### Option 1: Quick Setup (Basic Features)
+
+This gets you running quickly with core features:
 
 ```bash
-# Install dependencies
-pkg update && pkg install nodejs-lts git python
-
-# Clone the repository
+pkg update && pkg install nodejs-lts git python clang make
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-
-# Run the Termux-specific setup script
 bash scripts/setup-termux.sh
 ```
 
-### Manual Install
+**Features available:**
+- ✅ Core simulation engine
+- ✅ Web dashboard
+- ✅ Java Edition Minecraft
+- ✅ Ollama AI / Built-in rules
+- ⚠️ Bedrock Edition (may not compile)
+- ⚠️ Local AI models (may not compile)
+
+### Option 2: Full Setup (All Features)
+
+For Bedrock Edition and local AI models, use proot-distro to run a full Linux environment:
 
 ```bash
-pkg update && pkg install nodejs-lts git python
+pkg update && pkg install proot-distro
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-npm install
-npm run build
+bash scripts/setup-termux-full.sh
+```
+
+This installs Ubuntu inside Termux where native modules compile properly.
+
+**Features available:**
+- ✅ Everything from Quick Setup
+- ✅ Bedrock Edition Minecraft
+- ✅ Local AI models (node-llama-cpp)
+- ✅ SQLite storage (faster)
+
+### Running After Full Setup
+
+```bash
+# Enter the Ubuntu environment
+proot-distro login ubuntu
+
+# Start BlockLife
+cd ~/BLOCKLIFE-AI
 npm start
 ```
 
-### What Works on Termux
-
-- ✅ **Core simulation** - Full civilization engine
-- ✅ **Web dashboard** - Control panel at localhost:3000
-- ✅ **Java Edition** - Connect to Java Minecraft servers
-- ✅ **Ollama AI** - Works if Ollama is installed
-- ✅ **Built-in AI rules** - Always works, no external dependencies
-- ⚠️ **Bedrock Edition** - May not work (requires native compilation)
-- ⚠️ **Local AI models** - May not work (requires native compilation)
-
 ### Tips for Termux
 
-- **Use Java Edition servers** for best compatibility
-- **Use Ollama or built-in rules** for AI features
-- **Use ECO mode** for better battery life
+- **Full Setup recommended** for Bedrock Edition or local AI
+- **Quick Setup** is fine for Java Edition with Ollama
+- Use **ECO mode** for better battery life
 - Data is stored in the `data/` directory
 
 ---
@@ -278,19 +292,38 @@ blocklife-ai/
 - Reduce bot count
 - Use TinyLlama instead of larger models
 
-### npm install failing on Termux/Android?
-Some optional dependencies (`bedrock-protocol`, `node-llama-cpp`) require native compilation and may fail on Termux. This won't affect core functionality - the app works without them.
+### Bedrock Edition not working on Termux?
 
-**Solution:**
+The `bedrock-protocol` package requires native compilation which may fail on standard Termux. 
+
+**Solution:** Use the full setup with proot-distro:
 ```bash
-# Use the Termux setup script (handles everything)
-bash scripts/setup-termux.sh
+bash scripts/setup-termux-full.sh
 ```
 
-The core features (Java Edition, Ollama AI, web dashboard) work without native modules.
+This runs Ubuntu inside Termux where native modules compile properly.
+
+### Local AI models not working on Termux?
+
+The `node-llama-cpp` package requires native compilation. Use the full setup:
+```bash
+bash scripts/setup-termux-full.sh
+```
+
+Or use Ollama instead (works without native compilation):
+```bash
+# Install Ollama and pull a model
+ollama pull tinyllama
+ollama serve
+```
 
 ### Error: "gyp: Undefined variable android_ndk_path"
-This error means a native module is trying to compile without Android NDK. The affected packages are optional - the app works without them. Just use the Termux setup script and ignore these warnings.
+
+This error occurs when native modules try to compile on Termux without Android NDK.
+
+**Solutions:**
+1. **For basic features:** Run `bash scripts/setup-termux.sh` - core features work without native modules
+2. **For all features:** Run `bash scripts/setup-termux-full.sh` - uses Ubuntu via proot-distro
 
 ---
 
