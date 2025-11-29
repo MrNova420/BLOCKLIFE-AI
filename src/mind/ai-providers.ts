@@ -226,6 +226,10 @@ Provide 3 priorities, 3 suggestions, and any warnings. Format as JSON:
     return this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length;
   }
 
+  getProviderName(): string {
+    return 'ollama';
+  }
+
   private recordLatency(latency: number): void {
     this.latencies.push(latency);
     if (this.latencies.length > 50) this.latencies.shift();
@@ -362,6 +366,10 @@ Respond with JSON: {"priorities": [], "suggestions": [], "warnings": []}`;
     return this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length;
   }
 
+  getProviderName(): string {
+    return 'openai';
+  }
+
   private recordLatency(latency: number): void {
     this.latencies.push(latency);
     if (this.latencies.length > 50) this.latencies.shift();
@@ -459,6 +467,10 @@ export class RemoteAiClient implements AiCoreClient {
   getAverageLatency(): number {
     if (this.latencies.length === 0) return 0;
     return this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length;
+  }
+
+  getProviderName(): string {
+    return 'remote';
   }
 
   private recordLatency(latency: number): void {
@@ -573,6 +585,10 @@ export class LocalModelClient implements AiCoreClient {
     return this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length;
   }
 
+  getProviderName(): string {
+    return 'local-llama';
+  }
+
   private recordLatency(latency: number): void {
     this.latencies.push(latency);
     if (this.latencies.length > 50) this.latencies.shift();
@@ -664,6 +680,12 @@ export class FallbackWrappedClient implements AiCoreClient {
     return this.useFallback 
       ? this.fallback.getAverageLatency() 
       : this.primary.getAverageLatency();
+  }
+
+  getProviderName(): string {
+    return this.useFallback 
+      ? this.fallback.getProviderName() 
+      : this.primary.getProviderName();
   }
 
   /**

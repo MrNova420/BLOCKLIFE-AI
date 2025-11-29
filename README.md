@@ -6,19 +6,65 @@ Copyright © 2025 WeNova Interactive / Kayden Shawn Massengill
 
 ---
 
-## 🚀 Quick Start (Just Two Commands!)
+## 🚀 Quick Start
 
 ```bash
 npm install && npm start
 ```
 
-That's it! The web dashboard opens automatically at **http://localhost:3000**
+The web dashboard opens automatically at **http://localhost:3000**
 
-From there you can:
-1. Configure your Minecraft server (Java or Bedrock Edition)
-2. Choose an AI model (or use built-in rules)
-3. Start the simulation
-4. Control everything via natural language chat
+---
+
+## 🎮 How to Use
+
+### Step 1: Start BlockLife
+```bash
+npm install && npm start
+```
+
+### Step 2: Install a Local AI Model (Recommended)
+
+BlockLife uses **locally hosted AI models** via [Ollama](https://ollama.com). This runs entirely on your machine - no cloud, no API keys, no internet required.
+
+```bash
+# Install Ollama from https://ollama.com
+# Then pull a model:
+ollama pull tinyllama      # Fast, ~600MB (recommended for most)
+ollama pull mistral        # High quality, ~4GB
+ollama pull llama2         # Good general, ~4GB
+```
+
+### Step 3: Connect to Your Minecraft Server
+
+In the dashboard:
+1. Go to **Server Setup**
+2. Enter your Minecraft server address (e.g., `localhost:25565`)
+3. Select Java or Bedrock Edition
+4. Click **Connect**
+
+### Step 4: Spawn Bots & Start Simulation
+
+Use the chat panel:
+```
+create 20 bots        # Spawn 20 villagers
+start simulation      # Begin the simulation
+```
+
+Or click **Start Simulation** in the dashboard.
+
+### Step 5: Command Your Civilization
+
+Talk to the AI in natural language:
+```
+build a castle
+mine for diamonds
+tell Erik to farm wheat
+explore the mountains
+attack the zombies
+status
+help
+```
 
 ---
 
@@ -26,15 +72,13 @@ From there you can:
 
 BlockLife is a **living Minecraft civilization** that runs autonomously. Not a script. Not an automation tool. A tiny universe, evolving on your device.
 
-**The Core Experience:**
-- You set it up, walk away
+**The Experience:**
+- You start it, connect to your server, and let it run
 - Come back hours or days later
-- The world has changed
-- Bots built new structures
+- Bots built structures, farmed, mined, fought
 - Some died, some had children
 - Villages grew, split, or went to war
-- They talk about things that happened when you weren't there
-- They know they're in a block world (Jumanji vibe)
+- They remember what happened and talk about it
 
 **This is civilization in your pocket - for real.**
 
@@ -42,111 +86,103 @@ BlockLife is a **living Minecraft civilization** that runs autonomously. Not a s
 
 ## Features
 
-- 🤖 **Intelligent Bots** - Each bot has personality, skills, needs, and memories
-- 🏘️ **Village System** - Bots form and manage villages with roles and economy
-- 👨‍👩‍👧‍👦 **Family System** - Bots reproduce, inherit traits, and form family lines
-- ⚔️ **Conflict & Diplomacy** - Villages interact, trade, ally, or go to war
-- 📜 **History & Lore** - Events are recorded and turned into legends
-- 🎯 **Self-Awareness** - Bots know they exist in a block world
-- 🌐 **Web Dashboard** - Beautiful control panel at localhost:3000
-- 💬 **Natural Language** - Control everything with chat commands
-- 🎮 **Java & Bedrock** - Works with both Minecraft editions
-- 🤖 **AI Models** - Supports Ollama, OpenAI, or built-in rules
-- 📱 **Mobile-Friendly** - Runs on Termux/Android
-- ⚡ **24/7 Stable** - Auto-recovery and device protection
-- 📊 **Full Logging** - Track everything bots do
+- 🤖 **Intelligent Bots** - Each bot has personality, needs, and memories
+- 🏘️ **Village System** - Bots form and manage villages with roles
+- 👨‍👩‍👧‍👦 **Family System** - Bots reproduce and inherit traits
+- ⚔️ **Conflict & Diplomacy** - Villages trade, ally, or war
+- 📜 **History & Lore** - Events become legends
+- 🌐 **Web Dashboard** - Control panel at localhost:3000
+- 💬 **Natural Language** - Control everything with chat
+- 🎮 **Java & Bedrock** - Both Minecraft editions
+- 🤖 **Local AI** - Runs on YOUR machine (Ollama)
+- 📱 **Mobile-Friendly** - Works on Android/Termux
+- ⚡ **24/7 Stable** - Auto-recovery, device protection
+- 📊 **Full Logging** - Track everything
 
 ---
 
-## Installation
+## AI Models (Local Only)
 
-### Prerequisites
+BlockLife uses **locally hosted AI models** through Ollama. Everything runs on your machine.
 
-- Node.js 18+ (Download: https://nodejs.org)
-- A Minecraft server (Java or Bedrock Edition)
+### Available Models (via Dashboard)
 
-### Setup
+| Model | Size | Speed | Quality |
+|-------|------|-------|---------|
+| TinyLlama | 637MB | ⚡⚡⚡ Fast | Good |
+| Phi-2 | 1.7GB | ⚡⚡ Medium | Better |
+| Gemma 2B | 1.4GB | ⚡⚡ Medium | Better |
+| Mistral 7B | 4.1GB | ⚡ Slower | Best |
+| Llama 2 7B | 3.8GB | ⚡ Slower | Best |
+| **Built-in Rules** | 0MB | ⚡⚡⚡ Instant | Basic |
+
+### Installing a Model
 
 ```bash
-# Clone the repository
-git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
-cd BLOCKLIFE-AI
+# Install Ollama first: https://ollama.com
 
-# Install and start (automatic setup!)
-npm install && npm start
+# Then pull a model:
+ollama pull tinyllama   # Recommended for most users
+ollama pull mistral     # If you want higher quality
 ```
 
-The dashboard opens at **http://localhost:3000**
+### No AI? No Problem!
 
-### Chat Commands (in Dashboard)
+BlockLife works without any AI model using built-in rules. Select "Built-in Rules (No AI)" in the dashboard.
+
+---
+
+## Chat Commands
 
 | Command | What it does |
 |---------|--------------|
-| `build a castle` | Bots start building a castle |
+| `connect to localhost:25565` | Connect to a server |
+| `create 20 bots` | Spawn 20 villagers |
+| `spawn 50 civilians` | Spawn 50 civilians |
+| `start simulation` | Start the simulation |
+| `build a castle` | Command bots to build |
 | `mine for diamonds` | Send bots mining |
-| `farm wheat` | Start farming operations |
+| `farm wheat` | Start farming |
 | `explore the mountains` | Send bots exploring |
-| `attack enemies` | Engage in combat |
-| `tell Erik to build a house` | Direct specific bots |
+| `tell Erik to build` | Direct specific bots |
 | `status` | Show system status |
-| `help` | List all commands |
+| `help` | List commands |
 
 ---
 
 ## Configuration
-
-### From Dashboard (Recommended)
-
-Use the web dashboard to configure everything - no file editing needed!
-
-### Manual Configuration
-
-Edit `config/default.json`:
-
-```json
-{
-  "minecraft": {
-    "host": "your-server.com",
-    "port": 25565,
-    "edition": "java"
-  },
-  "simulation": {
-    "maxBots": 50,
-    "tickRateMs": 300
-  }
-}
-```
 
 ### Performance Modes
 
 - **ECO** - Battery-safe, 15-30 bots
 - **NORMAL** - Balanced, 30-60 bots  
 - **PERFORMANCE** - Full power, 60-120+ bots
-- **AUTO** - Adjusts based on device health (recommended)
+- **AUTO** - Adjusts automatically (recommended)
 
----
+### Manual Config
 
-## AI Models
+Edit `config/default.json`:
 
-BlockLife works with or without AI models:
-
-| Option | Description |
-|--------|-------------|
-| **Built-in Rules** | Works out of the box, no setup needed |
-| **Ollama (Local)** | Free, runs on your machine |
-| **OpenAI** | Requires API key |
-
-Install Ollama from https://ollama.com for the best experience.
+```json
+{
+  "minecraft": {
+    "host": "localhost",
+    "port": 25565,
+    "edition": "java"
+  },
+  "ai": {
+    "provider": "ollama",
+    "model": "tinyllama"
+  }
+}
+```
 
 ---
 
 ## Termux Setup (Android)
 
 ```bash
-# Install Node.js
 pkg install nodejs
-
-# Clone and run
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
 npm install && npm start
@@ -161,26 +197,35 @@ blocklife-ai/
 ├── src/
 │   ├── main.ts              # Entry point
 │   ├── orchestrator/        # Main loop
-│   ├── bots/                # Bot agents
+│   ├── bots/                # Bot agents & connection
 │   ├── simulation/          # Civilization logic
-│   ├── mind/                # AI integration
+│   ├── mind/                # AI (local Ollama)
 │   ├── panel/               # Web dashboard
 │   ├── knowledge/           # Minecraft data
-│   ├── persistence/         # Storage
 │   └── utils/               # Utilities
 ├── config/                  # Configuration
-├── scripts/                 # Startup scripts
 ├── data/                    # Runtime data
 └── docs/                    # Documentation
 ```
 
 ---
 
-## Development Status
+## Troubleshooting
 
-See [PROGRESS.md](PROGRESS.md) for current development status.
+### Bots not connecting to server?
+- Make sure your Minecraft server is running
+- Check the server address and port
+- For Bedrock, use the correct port (default: 19132)
 
-See [docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md) for detailed setup instructions.
+### AI not working?
+- Install Ollama: https://ollama.com
+- Pull a model: `ollama pull tinyllama`
+- Make sure Ollama is running: `ollama serve`
+
+### Performance issues?
+- Use ECO mode in the dashboard
+- Reduce bot count
+- Use TinyLlama instead of larger models
 
 ---
 

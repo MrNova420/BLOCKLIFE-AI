@@ -40,13 +40,17 @@ const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
 };
 
 const DEFAULT_AI_CONFIG: AiConfig = {
-  provider: 'stub',
-  model: 'tinyllama-1b',
+  provider: 'ollama',
+  model: 'tinyllama',
   maxBatchSize: 10,
   minBatchSize: 3,
-  decisionIntervalMs: 8000,
-  timeoutMs: 5000,
-  fallbackEnabled: true
+  decisionIntervalMs: 5000,
+  timeoutMs: 30000,
+  fallbackEnabled: true,
+  ollama: {
+    host: 'localhost',
+    port: 11434
+  }
 };
 
 const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
