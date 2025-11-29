@@ -37,8 +37,10 @@
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
+    "minecraft-data": "^3.101.0",
     "mineflayer": "^4.14.0",
     "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-registry": "^1.11.0",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },

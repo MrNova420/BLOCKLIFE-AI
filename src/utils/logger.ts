@@ -2,7 +2,8 @@
  * BlockLife AI - Logger Utility
  * Copyright © 2025 WeNova Interactive / Kayden Shawn Massengill
  * 
- * Lightweight logging system for BlockLife.
+ * Clean, human-readable logging system for BlockLife.
+ * Logs are clear and readable - no cluttered timestamps on every line.
  */
 
 import * as fs from 'fs';
@@ -15,6 +16,7 @@ export interface LoggerConfig {
   categories: string[];
   file?: string;
   console: boolean;
+  showTimestamp?: boolean;  // Only show timestamp when explicitly needed
 }
 
 const LOG_LEVELS: Record<LogLevel, number> = {
@@ -31,7 +33,16 @@ const LOG_COLORS: Record<LogLevel, string> = {
   error: '\x1b[31m'  // Red
 };
 
+const LOG_ICONS: Record<LogLevel, string> = {
+  debug: '🔍',
+  info: '✓',
+  warn: '⚠',
+  error: '✗'
+};
+
 const RESET_COLOR = '\x1b[0m';
+const BOLD = '\x1b[1m';
+const DIM = '\x1b[2m';
 
 class Logger {
   private config: LoggerConfig;
@@ -44,7 +55,8 @@ class Logger {
       level: config?.level ?? 'info',
       categories: config?.categories ?? ['*'],
       file: config?.file,
-      console: config?.console ?? true
+      console: config?.console ?? true,
+      showTimestamp: config?.showTimestamp ?? false
     };
 
     if (this.config.file) {
@@ -57,12 +69,10 @@ class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    // Check level
     if (LOG_LEVELS[level] < LOG_LEVELS[this.config.level]) {
       return false;
     }
 
-    // Check category
     if (this.config.categories.includes('*')) {
       return true;
     }
@@ -70,11 +80,37 @@ class Logger {
   }
 
   private formatMessage(level: LogLevel, message: string, data?: unknown): string {
-    const timestamp = new Date().toISOString();
+    const icon = LOG_ICONS[level];
+    const levelStr = level.toUpperCase();
+    const categoryStr = this.category;
+    
+    // Clean format without cluttered timestamps
+    let formatted = `${icon} [${categoryStr}] ${message}`;
+    
+    if (data !== undefined) {
+      if (typeof data === 'object') {
+        formatted += '\n' + JSON.stringify(data, null, 2);
+      } else {
+        formatted += ' ' + String(data);
+      }
+    }
+    
+    return formatted;
+  }
+
+  private formatForFile(level: LogLevel, message: string, data?: unknown): string {
+    // File gets a simple timestamp for record-keeping
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
     const levelStr = level.toUpperCase().padEnd(5);
     const categoryStr = this.category.padEnd(12);
     
-    let formatted = `[${timestamp}] [${levelStr}] [${categoryStr}] ${message}`;
+    let formatted = `${timestamp} | ${levelStr} | ${categoryStr} | ${message}`;
     
     if (data !== undefined) {
       if (typeof data === 'object') {
@@ -92,16 +128,16 @@ class Logger {
       return;
     }
 
-    const formatted = this.formatMessage(level, message, data);
-
-    // Console output with colors
+    // Console output - clean and readable
     if (this.config.console) {
       const color = LOG_COLORS[level];
+      const formatted = this.formatMessage(level, message, data);
       console.log(`${color}${formatted}${RESET_COLOR}`);
     }
 
-    // File output without colors
+    // File output - with timestamps for records
     if (this.fileStream) {
+      const formatted = this.formatForFile(level, message, data);
       this.fileStream.write(formatted + '\n');
     }
   }
@@ -122,6 +158,14 @@ class Logger {
     this.log('error', message, data);
   }
 
+  // Special method for important announcements
+  announce(message: string): void {
+    const border = '═'.repeat(60);
+    console.log(`\n\x1b[36m╔${border}╗\x1b[0m`);
+    console.log(`\x1b[36m║\x1b[0m \x1b[1m${message.padEnd(58)}\x1b[0m \x1b[36m║\x1b[0m`);
+    console.log(`\x1b[36m╚${border}╝\x1b[0m\n`);
+  }
+
   close(): void {
     if (this.fileStream) {
       this.fileStream.end();
@@ -133,7 +177,8 @@ class Logger {
 let defaultConfig: Partial<LoggerConfig> = {
   level: 'info',
   categories: ['*'],
-  console: true
+  console: true,
+  showTimestamp: false
 };
 
 /**
