@@ -9,9 +9,12 @@
  * - Real Minecraft data from official game files
  * - Web dashboard for easy control
  * - Natural language commands
- * - Web research capability (toggle-able)
+ * - Web research capability (toggle-able, PERSISTENT)
  * - Java & Bedrock Edition support
  * - 24/7 stability with automatic recovery
+ * - Auto-learning and scheduled training
+ * - Knowledge acquisition from research
+ * - Smart pathfinding for realistic movement
  */
 
 import { Orchestrator, getOrchestrator } from './orchestrator';
@@ -25,6 +28,9 @@ import { getWebResearch } from './mind/web-research';
 import { getAICommander } from './mind/ai-commander';
 import { getStabilityManager, HealthStatus } from './utils/stability-manager';
 import { getCentralAIBrain } from './mind/central-ai-brain';
+import { getAILearningManager } from './mind/ai-learning';
+import { getKnowledgeAcquisition } from './mind/knowledge-acquisition';
+import { getAutoManager } from './utils/auto-manager';
 
 const logger = createLogger('main');
 
@@ -83,9 +89,13 @@ async function initializeSystems(): Promise<void> {
     'Individual bot AI minds ready'
   );
   
-  // Initialize Web Research (disabled by default)
-  console.log(`  ${GREEN}✓${RESET} Web research system ready ${DIM}(disabled by default)${RESET}`);
+  // Initialize Web Research (loads persisted enabled/disabled state)
   const webResearch = getWebResearch();
+  const webResearchEnabled = webResearch.isEnabled();
+  console.log(`  ${GREEN}✓${RESET} Web research system ready ${webResearchEnabled ? `${GREEN}(ENABLED)${RESET}` : `${DIM}(disabled)${RESET}`}`);
+  if (webResearchEnabled) {
+    console.log(`    ${DIM}AI can search the web for information${RESET}`);
+  }
   
   // Initialize AI Commander
   console.log(`  ${GREEN}✓${RESET} AI Commander ready for natural language commands`);
@@ -100,6 +110,25 @@ async function initializeSystems(): Promise<void> {
     'Central AI Brain ready - autonomous control enabled'
   );
   console.log(`    ${DIM}Full autonomous control of all bots enabled${RESET}`);
+  
+  // Initialize AI Learning System
+  console.log(`  ${GREEN}✓${RESET} AI Learning system initializing...`);
+  const learningManager = getAILearningManager();
+  learningManager.start();
+  const learningStatus = learningManager.getStatus();
+  console.log(`    ${DIM}Auto-training: ${learningStatus.autoTraining ? 'ON' : 'OFF'}, Learned patterns: ${learningStatus.learnedPatterns}${RESET}`);
+  
+  // Initialize Knowledge Acquisition System
+  console.log(`  ${GREEN}✓${RESET} Knowledge acquisition system ready`);
+  const knowledgeAcq = getKnowledgeAcquisition();
+  const knowledgeStats = knowledgeAcq.getStats();
+  console.log(`    ${DIM}Blueprints: ${knowledgeStats.blueprintsAcquired}, Recipes: ${knowledgeStats.recipesAcquired}, Strategies: ${knowledgeStats.strategiesAcquired}${RESET}`);
+  
+  // Initialize Auto Manager (handles bot reconnection, health monitoring)
+  console.log(`  ${GREEN}✓${RESET} Auto Manager initializing...`);
+  const autoManager = getAutoManager();
+  autoManager.start();
+  console.log(`    ${DIM}Auto-reconnection and health monitoring active${RESET}`);
   
   // Initialize Memory System
   console.log(`  ${GREEN}✓${RESET} Memory and logging systems active`);
@@ -229,7 +258,15 @@ async function main(): Promise<void> {
     const aiBrain = getCentralAIBrain();
     aiBrain.stop();
     
-    // Stop stability manager first to save state
+    // Stop Auto Manager
+    const autoManager = getAutoManager();
+    autoManager.stop();
+    
+    // Stop AI Learning (saves data)
+    const learningManager = getAILearningManager();
+    learningManager.stop();
+    
+    // Stop stability manager (saves state)
     const stability = getStabilityManager();
     stability.stop();
     
