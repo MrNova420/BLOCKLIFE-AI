@@ -238,10 +238,10 @@ export class BotAgent {
   }
 
   /**
-   * Get bot needs
+   * Get bot needs (returns reference for modification)
    */
   getNeeds(): NeedsState {
-    return { ...this.data.needs };
+    return this.data.needs;
   }
 
   /**
@@ -267,6 +267,37 @@ export class BotAgent {
    */
   isDead(): boolean {
     return this.data.flags.isDead;
+  }
+
+  /**
+   * Mark the bot as dead
+   */
+  markDead(): void {
+    this.data.flags.isDead = true;
+    this.data.flags.isIdle = true;
+    this.data.currentTask = undefined;
+    this.data.updatedAt = Date.now();
+    logger.info(`${this.data.name} has died`);
+  }
+
+  /**
+   * Get current task
+   */
+  getCurrentTask(): Task | undefined {
+    return this.data.currentTask;
+  }
+
+  /**
+   * Complete the current task
+   */
+  completeCurrentTask(): void {
+    if (this.data.currentTask) {
+      logger.debug(`${this.data.name} completed: ${this.data.currentTask.type}`);
+      this.data.currentTask = undefined;
+      this.data.flags.isIdle = true;
+      this.data.flags.needsAiDecision = true;
+      this.data.updatedAt = Date.now();
+    }
   }
 
   /**

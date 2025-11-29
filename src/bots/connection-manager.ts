@@ -9,6 +9,7 @@
 import { createMinecraftClient, IMinecraftClient, checkEditionSupport } from './mc-adapter';
 import { getBotManager, BotManager } from './bot-manager';
 import { BotAgent, BotAgentOptions } from './bot-agent';
+import { getBotControllerManager, BotController } from './bot-controller';
 import { getSimEngine, SimEngine } from '../simulation/sim-engine';
 import { MinecraftConfig, Position, Role, Gender, LifeStage, MinecraftEdition, TechAge } from '../types';
 import { createLogger } from '../utils/logger';
@@ -359,6 +360,10 @@ export class ConnectionManager {
         // Add bot to village
         village.memberIds.push(botAgent.id);
         
+        // Create bot controller for this agent
+        const controllerManager = getBotControllerManager();
+        const controller = controllerManager.createController(botAgent);
+        
         // Connect bot to server if config available
         if (this.config) {
           try {
@@ -368,6 +373,9 @@ export class ConnectionManager {
             // Connect asynchronously (don't wait for each one)
             client.connect().then(() => {
               this.clients.set(botAgent.id, client);
+              
+              // Link the controller to the Minecraft client
+              controller.setClient(client);
               
               // Set up event handlers
               client.on('spawn', () => {
@@ -419,6 +427,10 @@ export class ConnectionManager {
         errors.push(`Bot ${i + 1}: ${error}`);
       }
     }
+    
+    // Start the bot controller tick loop
+    const controllerManager = getBotControllerManager();
+    controllerManager.startTicking();
     
     this.state = ConnectionState.READY;
     
