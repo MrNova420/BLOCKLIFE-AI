@@ -262,8 +262,7 @@ blocklife-ai/
 1. To YOUR Minecraft server (that you specify)
 2. To Ollama running on YOUR machine (if you use AI features)
 
-### For more security information:
-See **[SECURITY-AND-PRIVACY.md](SECURITY-AND-PRIVACY.md)** for detailed information about data handling, network connections, and privacy.
+For more details, see the **[Security & Privacy Documentation](SECURITY-AND-PRIVACY.md)**.
 
 ---
 
