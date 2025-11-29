@@ -36,7 +36,6 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3",
     "minecraft-data": "^3.101.0",
     "mineflayer": "^4.14.0",
     "mineflayer-pathfinder": "^2.4.5",
@@ -46,10 +45,10 @@
   },
   "optionalDependencies": {
     "bedrock-protocol": "^3.51.0",
+    "better-sqlite3": "^9.4.3",
     "node-llama-cpp": "^2.8.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.19.25",
     "@types/uuid": "^9.0.8",
