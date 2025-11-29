@@ -19,6 +19,7 @@ import { promisify } from 'util';
 import { getSystemStatus } from '../utils/system-status';
 import { getWebResearch } from '../mind/web-research';
 import { getConsciousnessManager } from '../mind/bot-consciousness';
+import { getProgressionTracker, ProgressionCategory } from '../utils/progression-tracker';
 
 const execAsync = promisify(exec);
 const logger = createLogger('dashboard');
@@ -250,6 +251,24 @@ export class DashboardServer {
         
         case '/api/web-research/status':
           return this.sendJson(res, this.getWebResearchStatus());
+        
+        case '/api/progression/summary':
+          return this.sendJson(res, this.getProgressionSummary());
+        
+        case '/api/progression/log':
+          return this.sendJson(res, this.getProgressionLog(url));
+        
+        case '/api/progression/bot':
+          return this.sendJson(res, this.getBotProgressionData(url));
+        
+        case '/api/progression/village':
+          return this.sendJson(res, this.getVillageProgressionData(url));
+        
+        case '/api/progression/civilization':
+          return this.sendJson(res, this.getCivilizationProgression());
+        
+        case '/api/progression/report':
+          return this.sendJson(res, this.getProgressionReport());
         
         default:
           return this.sendError(res, 404, 'Not found');
@@ -883,6 +902,298 @@ export class DashboardServer {
           summary: result.summary,
           fromCache: result.fromCache,
           searchTime: `${result.searchDurationMs}ms`
+        }
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  // ========== Progression Tracking ==========
+
+  private getProgressionSummary(): any {
+    try {
+      const tracker = getProgressionTracker();
+      const summary = tracker.getProgressionSummary();
+      
+      return {
+        success: true,
+        data: {
+          civilization: summary.civilization,
+          totalBots: summary.totalBots,
+          totalVillages: summary.totalVillages,
+          totalBuildings: summary.totalBuildings,
+          recentEvents: summary.recentEvents.map(e => ({
+            ...e,
+            time: new Date(e.timestamp).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+          })),
+          milestones: summary.milestones.map(m => ({
+            ...m,
+            time: new Date(m.timestamp).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+          }))
+        }
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getProgressionLog(url: URL): any {
+    try {
+      const tracker = getProgressionTracker();
+      const category = url.searchParams.get('category') as ProgressionCategory | undefined;
+      const entityId = url.searchParams.get('entityId') || undefined;
+      const significance = url.searchParams.get('significance') || undefined;
+      const limit = parseInt(url.searchParams.get('limit') || '100');
+      
+      const entries = tracker.getProgressionLog({
+        category,
+        entityId,
+        significance,
+        limit
+      });
+      
+      return {
+        success: true,
+        data: entries.map(e => ({
+          ...e,
+          time: new Date(e.timestamp).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
+        }))
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getBotProgressionData(url: URL): any {
+    try {
+      const botId = url.searchParams.get('botId');
+      
+      if (botId) {
+        const tracker = getProgressionTracker();
+        const progression = tracker.getBotProgression(botId);
+        
+        if (!progression) {
+          return { success: false, error: 'Bot not found' };
+        }
+        
+        return {
+          success: true,
+          data: {
+            ...progression,
+            createdTime: new Date(progression.createdAt).toLocaleString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }),
+            lifeEvents: progression.lifeEvents.map(e => ({
+              ...e,
+              time: new Date(e.timestamp).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            })),
+            achievements: progression.achievements.map(a => ({
+              ...a,
+              time: new Date(a.achievedAt).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            }))
+          }
+        };
+      } else {
+        // Return all bot progressions summary
+        const tracker = getProgressionTracker();
+        const allBots = tracker.getAllBotProgressions();
+        
+        return {
+          success: true,
+          data: allBots.map(b => ({
+            botId: b.botId,
+            botName: b.botName,
+            currentRole: b.currentRole,
+            currentAge: b.currentAge,
+            lifeStage: b.lifeStage,
+            isAlive: !b.deathDay,
+            achievementCount: b.achievements.length,
+            topSkill: b.skills.reduce((a, b) => a.level > b.level ? a : b, b.skills[0])?.skill,
+            stats: b.stats
+          }))
+        };
+      }
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getVillageProgressionData(url: URL): any {
+    try {
+      const villageId = url.searchParams.get('villageId');
+      
+      if (villageId) {
+        const tracker = getProgressionTracker();
+        const progression = tracker.getVillageProgression(villageId);
+        
+        if (!progression) {
+          return { success: false, error: 'Village not found' };
+        }
+        
+        return {
+          success: true,
+          data: {
+            ...progression,
+            foundedTime: new Date(progression.foundedAt).toLocaleString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }),
+            keyEvents: progression.keyEvents.map(e => ({
+              ...e,
+              time: new Date(e.timestamp).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            })),
+            culturalMilestones: progression.culturalMilestones.map(m => ({
+              ...m,
+              time: new Date(m.achievedAt).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            }))
+          }
+        };
+      } else {
+        // Return all village progressions summary
+        const tracker = getProgressionTracker();
+        const allVillages = tracker.getAllVillageProgressions();
+        
+        return {
+          success: true,
+          data: allVillages.map(v => ({
+            villageId: v.villageId,
+            villageName: v.villageName,
+            currentPopulation: v.currentPopulation,
+            peakPopulation: v.peakPopulation,
+            currentTechAge: v.currentTechAge,
+            currentProsperity: v.currentProsperity,
+            totalBirths: v.totalBirths,
+            totalDeaths: v.totalDeaths,
+            totalBuildingsCompleted: v.totalBuildingsCompleted,
+            milestonesCount: v.culturalMilestones.length
+          }))
+        };
+      }
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getCivilizationProgression(): any {
+    try {
+      const tracker = getProgressionTracker();
+      const civ = tracker.getCivilizationProgression();
+      
+      if (!civ) {
+        return { success: false, error: 'Civilization not initialized' };
+      }
+      
+      return {
+        success: true,
+        data: {
+          ...civ,
+          startedTime: new Date(civ.startedAt).toLocaleString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          }),
+          timeline: civ.timeline.map(t => ({
+            ...t,
+            time: new Date(t.timestamp).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+          })),
+          milestones: civ.milestones.map(m => ({
+            ...m,
+            time: new Date(m.achievedAt).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+          }))
+        }
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getProgressionReport(): any {
+    try {
+      const tracker = getProgressionTracker();
+      const report = tracker.generateProgressionReport();
+      
+      return {
+        success: true,
+        data: {
+          report,
+          generatedAt: new Date().toLocaleString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
         }
       };
     } catch (error) {
