@@ -208,15 +208,16 @@ export class SqliteStorage implements StorageLayer {
     
     fs.mkdirSync(snapshotDir, { recursive: true });
     
-    // Copy the database file
+    // Copy the database file using synchronous copy for reliability
     const snapshotDbPath = path.join(snapshotDir, 'blocklife.db');
-    this.db.backup(snapshotDbPath).then(() => {
-      logger.info(`Created SQLite snapshot: ${snapshotName}`);
-    }).catch((err: Error) => {
-      // Fallback: manual copy
+    try {
+      // Use synchronous copy to ensure snapshot is complete before returning
       fs.copyFileSync(this.dbPath, snapshotDbPath);
-      logger.info(`Created SQLite snapshot (copy): ${snapshotName}`);
-    });
+      logger.info(`Created SQLite snapshot: ${snapshotName}`);
+    } catch (err) {
+      logger.error(`Failed to create snapshot: ${err}`);
+      throw err;
+    }
     
     // Record snapshot in metadata
     this.db.prepare('INSERT OR REPLACE INTO snapshots (name) VALUES (?)').run(snapshotName);
