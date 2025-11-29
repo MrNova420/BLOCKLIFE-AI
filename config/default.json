@@ -1,0 +1,37 @@
+{
+  "minecraft": {
+    "host": "localhost",
+    "port": 25565,
+    "version": "1.20.4",
+    "usernamePrefix": "BlockLife_"
+  },
+  "simulation": {
+    "performanceMode": "AUTO",
+    "maxBots": 50,
+    "tickRateMs": 300,
+    "aiEnabled": true,
+    "autoSave": true,
+    "saveIntervalMs": 60000
+  },
+  "ai": {
+    "provider": "stub",
+    "model": "tinyllama-1b",
+    "maxBatchSize": 10,
+    "minBatchSize": 3,
+    "decisionIntervalMs": 8000,
+    "timeoutMs": 5000,
+    "fallbackEnabled": true
+  },
+  "logging": {
+    "level": "info",
+    "categories": ["system", "ai", "sim", "perf"],
+    "file": "./data/logs/blocklife.log",
+    "maxSize": "10MB",
+    "maxFiles": 5
+  },
+  "data": {
+    "dir": "./data",
+    "snapshotsDir": "./data/snapshots",
+    "maxSnapshots": 10
+  }
+}

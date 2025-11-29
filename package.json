@@ -1,0 +1,55 @@
+{
+  "name": "blocklife-ai",
+  "version": "0.1.0",
+  "description": "BlockLife – Minecraft Civilization Engine: A living civilization of AI-powered bots in Minecraft",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts",
+    "dashboard": "ts-node tools/dashboard.ts",
+    "lint": "eslint src/**/*.ts --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf dist",
+    "status": "ts-node tools/status.ts"
+  },
+  "keywords": [
+    "minecraft",
+    "ai",
+    "civilization",
+    "bot",
+    "simulation",
+    "mineflayer",
+    "autonomous"
+  ],
+  "author": "WeNova Interactive / Kayden Shawn Massengill",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MrNova420/BLOCKLIFE-AI.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "mineflayer": "^4.14.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "better-sqlite3": "^9.4.3",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "ts-jest": "^29.1.2"
+  }
+}

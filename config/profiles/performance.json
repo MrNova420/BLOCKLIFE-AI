@@ -1,0 +1,23 @@
+{
+  "eco": {
+    "maxBots": 25,
+    "aiBatchSize": 5,
+    "aiDecisionIntervalMs": 10000,
+    "tickRateMs": 500,
+    "backgroundBotFraction": 0.6
+  },
+  "normal": {
+    "maxBots": 50,
+    "aiBatchSize": 10,
+    "aiDecisionIntervalMs": 8000,
+    "tickRateMs": 300,
+    "backgroundBotFraction": 0.4
+  },
+  "performance": {
+    "maxBots": 100,
+    "aiBatchSize": 15,
+    "aiDecisionIntervalMs": 5000,
+    "tickRateMs": 200,
+    "backgroundBotFraction": 0.3
+  }
+}
