@@ -159,6 +159,7 @@ export class TradeCaravanManager {
   private readonly GUARD_PER_VALUE = 50;  // 1 guard per 50 value
   private readonly BASE_TRAVEL_SPEED = 2;  // Blocks per tick
   private readonly ROUTE_SAFETY_THRESHOLD = 30;  // Below this, route is dangerous
+  private readonly ATTACK_CHANCE_DIVISOR = 10000;  // Per-tick attack chance scaling (higher = rarer attacks)
   
   // Base resource values
   private readonly BASE_VALUES: Record<keyof ResourceStock, number> = {
@@ -484,7 +485,8 @@ export class TradeCaravanManager {
    */
   private checkCaravanEvents(caravan: Caravan, route: TradeRoute): void {
     // Random attack based on route safety
-    const attackChance = (100 - route.safety) / 10000;  // Per tick
+    // Attack chance scales with danger: 0% at safety=100, ~1% per tick at safety=0
+    const attackChance = (100 - route.safety) / this.ATTACK_CHANCE_DIVISOR;
     
     if (Math.random() < attackChance) {
       this.handleCaravanAttack(caravan, route);

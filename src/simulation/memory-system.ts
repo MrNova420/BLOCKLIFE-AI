@@ -489,7 +489,7 @@ export class MemorySystemManager {
    * Get memory summaries for a bot
    */
   getSummaries(botId: string): MemorySummary[] {
-    return this.summaries.get(botId) || [];
+    return this.summaries.get(botId) ?? [];
   }
 
   /**

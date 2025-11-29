@@ -352,6 +352,11 @@ export class RelationshipDepthManager {
   /**
    * Adjust a relationship dimension
    */
+  /**
+   * Adjust a relationship dimension
+   * Note: Both positive and negative dimensions use the same clamping logic (0-100)
+   * but are tracked separately for semantic clarity in the relationship model
+   */
   private adjustDimension(
     rel: DeepRelationship,
     dimension: keyof DeepRelationship,
@@ -359,14 +364,8 @@ export class RelationshipDepthManager {
   ): void {
     if (typeof rel[dimension] === 'number') {
       const current = rel[dimension] as number;
-      const isNegativeDimension = ['resentment', 'jealousy', 'fear'].includes(dimension as string);
-      
-      if (isNegativeDimension) {
-        // For negative dimensions, higher is worse
-        (rel as unknown as Record<string, number>)[dimension as string] = Math.max(0, Math.min(100, current + amount));
-      } else {
-        (rel as unknown as Record<string, number>)[dimension as string] = Math.max(0, Math.min(100, current + amount));
-      }
+      // Clamp all dimensions to 0-100 range
+      (rel as unknown as Record<string, number>)[dimension as string] = Math.max(0, Math.min(100, current + amount));
     }
   }
 

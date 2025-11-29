@@ -656,7 +656,8 @@ export class VillageSplittingManager {
     const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
     
     if (sourceVillage && Math.random() > 0.5) {
-      // Reference source village
+      // Reference source village by deriving from its name
+      // Remove trailing lowercase letter to allow suffix attachment (e.g., "Stone" -> "Ston" + "ford")
       const sourceName = sourceVillage.name.split(' ')[0].replace(/[a-z]$/i, '');
       return `${prefix} ${sourceName}${suffix}`;
     }

@@ -296,6 +296,9 @@ export class TerritoryManager {
     
     // Find the edge zone in that direction
     const edgeZone = this.findEdgeZone(villageZones, direction);
+    if (!edgeZone) {
+      throw new Error('Could not find edge zone for expansion');
+    }
     
     // Calculate target area
     const targetArea = this.calculateExpansionArea(edgeZone, direction);
@@ -321,7 +324,9 @@ export class TerritoryManager {
   /**
    * Find the zone at the edge in a direction
    */
-  private findEdgeZone(zones: TerritoryZone[], direction: string): TerritoryZone {
+  private findEdgeZone(zones: TerritoryZone[], direction: string): TerritoryZone | undefined {
+    if (zones.length === 0) return undefined;
+    
     return zones.reduce((edge, zone) => {
       switch (direction) {
         case 'NORTH': return zone.center.z < edge.center.z ? zone : edge;
