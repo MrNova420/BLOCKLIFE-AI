@@ -139,7 +139,7 @@ export interface SessionStats {
   resourcesGathered: Record<string, number>;
   battlesWon: number;
   battlesLost: number;
-  tradescompleted: number;
+  tradesCompleted: number;
   technologiesResearched: number;
   memoriesCreated: number;
   memoriesAccessed: number;
@@ -211,7 +211,7 @@ export class SystemStatusManager {
       resourcesGathered: {},
       battlesWon: 0,
       battlesLost: 0,
-      tradescompleted: 0,
+      tradesCompleted: 0,
       technologiesResearched: 0,
       memoriesCreated: 0,
       memoriesAccessed: 0
@@ -583,7 +583,7 @@ export class SystemStatusManager {
   }
   
   recordTrade(): void {
-    this.sessionStats.tradescompleted++;
+    this.sessionStats.tradesCompleted++;
   }
   
   recordTechResearch(techName: string): void {
@@ -747,7 +747,7 @@ export class SystemStatusManager {
       resourcesGathered: {},
       battlesWon: 0,
       battlesLost: 0,
-      tradescompleted: 0,
+      tradesCompleted: 0,
       technologiesResearched: 0,
       memoriesCreated: 0,
       memoriesAccessed: 0
