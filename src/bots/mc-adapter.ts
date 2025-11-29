@@ -4,10 +4,17 @@
  * 
  * Unified adapter for both Java Edition (mineflayer) and Bedrock Edition (bedrock-protocol).
  * Provides a consistent interface for bot control across both editions.
+ * 
+ * FEATURES:
+ * - Smart pathfinding for BOTH editions
+ * - Proper connection handling with timeouts
+ * - Obstacle avoidance and stuck recovery
+ * - Real player-like movement
  */
 
 import { Position, MinecraftConfig, MinecraftEdition } from '../types';
 import { createLogger } from '../utils/logger';
+import { SmartPathfinder, PathExecutor, createJavaPathfinder, createBedrockPathfinder, createDefaultPathfinder } from './smart-pathfinder';
 
 const logger = createLogger('mc-adapter');
 
@@ -127,6 +134,11 @@ export class JavaEditionClient implements IMinecraftClient {
   private username: string;
   private connected: boolean = false;
   private eventHandlers: Map<string, Set<Function>> = new Map();
+  
+  // Smart pathfinding
+  private smartPathfinder: SmartPathfinder | null = null;
+  private pathExecutor: PathExecutor | null = null;
+  private pathfinderLoaded: boolean = false;
 
   constructor(config: MinecraftConfig, username: string) {
     this.config = config;
@@ -149,25 +161,53 @@ export class JavaEditionClient implements IMinecraftClient {
       });
 
       return new Promise((resolve, reject) => {
-        this.bot.once('spawn', () => {
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (!this.connected) {
+            const err = new Error(`Connection timeout after 30 seconds to ${this.config.host}:${this.config.port}`);
+            logger.error(`[Java] ${err.message}`);
+            this.emit('error', err);
+            reject(err);
+          }
+        }, 30000);
+
+        this.bot.once('spawn', async () => {
+          clearTimeout(connectionTimeout);
           this.connected = true;
           logger.info(`[Java] ${this.username} spawned successfully`);
+          
+          // Load pathfinder plugin after spawn
+          try {
+            const pathfinder = await import('mineflayer-pathfinder');
+            this.bot.loadPlugin(pathfinder.pathfinder);
+            this.pathfinderLoaded = true;
+            logger.debug(`[Java] Pathfinder plugin loaded for ${this.username}`);
+          } catch (pathErr) {
+            logger.warn(`[Java] Could not load mineflayer-pathfinder: ${pathErr}`);
+            // Initialize smart pathfinder as fallback
+            this.initializeSmartPathfinder();
+          }
+          
           this.emit('spawn');
           resolve();
         });
 
         this.bot.once('error', (err: Error) => {
+          clearTimeout(connectionTimeout);
           logger.error(`[Java] Connection error: ${err.message}`);
           this.emit('error', err);
           reject(err);
         });
 
         this.bot.once('kicked', (reason: string) => {
+          clearTimeout(connectionTimeout);
           logger.warn(`[Java] ${this.username} was kicked: ${reason}`);
+          this.connected = false;
           this.emit('kicked', reason);
         });
 
         this.bot.once('end', () => {
+          clearTimeout(connectionTimeout);
           this.connected = false;
           this.emit('end');
         });
@@ -244,19 +284,89 @@ export class JavaEditionClient implements IMinecraftClient {
     return this.bot?.game?.gameMode ?? 'survival';
   }
 
+  /**
+   * Initialize smart pathfinder for this bot
+   */
+  private initializeSmartPathfinder(): void {
+    if (this.smartPathfinder || !this.bot) return;
+    
+    try {
+      this.smartPathfinder = createJavaPathfinder(this.bot);
+      this.pathExecutor = new PathExecutor(this.smartPathfinder, {
+        moveTo: async (pos) => {
+          // Direct movement to adjacent position
+          this.lookAt(pos);
+          this.bot.setControlState('forward', true);
+          await new Promise(resolve => setTimeout(resolve, 250));
+          this.bot.setControlState('forward', false);
+          return true;
+        },
+        jump: () => this.jump(),
+        sprint: (enable) => this.sprint(enable),
+        getPosition: () => this.getPosition(),
+        lookAt: (pos) => this.lookAt(pos)
+      });
+      
+      logger.debug(`[Java] Smart pathfinder initialized for ${this.username}`);
+    } catch (error) {
+      logger.warn(`[Java] Could not initialize smart pathfinder: ${error}`);
+    }
+  }
+
   async moveTo(position: Position): Promise<boolean> {
     if (!this.bot) return false;
     
     try {
-      // Use pathfinder if available
-      const { goals, Movements } = await import('mineflayer-pathfinder');
-      const mcData = await import('minecraft-data');
-      const data = (mcData as any).default(this.bot.version);
+      // First try mineflayer-pathfinder (most reliable for Java)
+      if (this.bot.pathfinder && this.pathfinderLoaded) {
+        const { goals, Movements } = await import('mineflayer-pathfinder');
+        
+        const movements = new Movements(this.bot);
+        movements.allowSprinting = true;
+        movements.canDig = false; // Don't dig blocks
+        this.bot.pathfinder.setMovements(movements);
+        
+        await this.bot.pathfinder.goto(new goals.GoalNear(position.x, position.y, position.z, 1));
+        return true;
+      }
       
-      const movements = new Movements(this.bot);
-      this.bot.pathfinder.setMovements(movements);
+      // Second try: Smart pathfinder (custom A* implementation)
+      if (!this.smartPathfinder) {
+        this.initializeSmartPathfinder();
+      }
       
-      await this.bot.pathfinder.goto(new goals.GoalNear(position.x, position.y, position.z, 1));
+      if (this.pathExecutor) {
+        const success = await this.pathExecutor.navigateTo(position);
+        if (success) return true;
+      }
+      
+      // Final fallback: Simple direct movement
+      const currentPos = this.getPosition();
+      const distance = Math.sqrt(
+        Math.pow(position.x - currentPos.x, 2) +
+        Math.pow(position.z - currentPos.z, 2)
+      );
+      
+      // Look at target
+      this.lookAt(position);
+      
+      // Sprint if far, walk if close
+      if (distance > 10) {
+        this.sprint(true);
+      }
+      
+      // Move forward
+      this.bot.setControlState('forward', true);
+      
+      // Calculate move time based on distance (4.3 blocks/sec walking, 5.6 sprinting)
+      const speed = distance > 10 ? 5.6 : 4.3;
+      const moveTime = Math.min((distance / speed) * 1000, 5000); // Max 5 seconds
+      
+      await new Promise(resolve => setTimeout(resolve, moveTime));
+      
+      this.bot.setControlState('forward', false);
+      this.sprint(false);
+      
       return true;
     } catch (error) {
       logger.debug(`[Java] MoveTo failed: ${error}`);
@@ -467,10 +577,74 @@ export class BedrockEditionClient implements IMinecraftClient {
   private gameMode: string = 'survival';
   private inventory: InventoryItem[] = [];
   private entities: Map<number, EntityInfo> = new Map();
+  
+  // Smart pathfinding for Bedrock
+  private smartPathfinder: SmartPathfinder | null = null;
+  private pathExecutor: PathExecutor | null = null;
+  
+  // Block tracking for pathfinding (Bedrock needs to track blocks manually)
+  private knownBlocks: Map<string, { type: string; solid: boolean }> = new Map();
 
   constructor(config: MinecraftConfig, username: string) {
     this.config = config;
     this.username = username;
+  }
+  
+  /**
+   * Initialize smart pathfinder for Bedrock
+   */
+  private initializeSmartPathfinder(): void {
+    if (this.smartPathfinder) return;
+    
+    // Create pathfinder with block checker that uses our tracked blocks
+    this.smartPathfinder = new SmartPathfinder((pos) => {
+      const key = `${Math.floor(pos.x)},${Math.floor(pos.y)},${Math.floor(pos.z)}`;
+      const block = this.knownBlocks.get(key);
+      
+      return {
+        isSolid: block?.solid ?? (pos.y < 64), // Assume solid below y=64 if unknown
+        isWater: block?.type?.includes('water') ?? false,
+        isLava: block?.type?.includes('lava') ?? false,
+        isDangerous: block?.type?.includes('lava') || block?.type?.includes('cactus') || false,
+        isClimbable: block?.type?.includes('ladder') || block?.type?.includes('vine') || false,
+        height: block?.solid ? 1 : 0
+      };
+    });
+    
+    this.pathExecutor = new PathExecutor(this.smartPathfinder, {
+      moveTo: async (pos) => {
+        // Send move packet to Bedrock server
+        if (this.client) {
+          this.client.write('move_player', {
+            runtime_id: 1,
+            position: { x: pos.x, y: pos.y, z: pos.z },
+            pitch: 0,
+            yaw: this.calculateYaw(this.position, pos),
+            head_yaw: this.calculateYaw(this.position, pos),
+            mode: 'normal',
+            on_ground: true
+          });
+          this.position = pos;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return true;
+      },
+      jump: () => this.jump(),
+      sprint: (enable) => this.sprint(enable),
+      getPosition: () => this.getPosition(),
+      lookAt: (pos) => this.lookAt(pos)
+    });
+    
+    logger.debug(`[Bedrock] Smart pathfinder initialized for ${this.username}`);
+  }
+  
+  /**
+   * Calculate yaw angle between two positions
+   */
+  private calculateYaw(from: Position, to: Position): number {
+    const dx = to.x - from.x;
+    const dz = to.z - from.z;
+    return Math.atan2(dz, dx) * (180 / Math.PI) - 90;
   }
 
   async connect(): Promise<void> {
@@ -497,26 +671,44 @@ export class BedrockEditionClient implements IMinecraftClient {
       this.client = bedrock.createClient(options);
 
       return new Promise((resolve, reject) => {
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (!this.connected) {
+            const err = new Error(`Connection timeout after 30 seconds to ${this.config.host}:${this.config.port}`);
+            logger.error(`[Bedrock] ${err.message}`);
+            this.emit('error', err);
+            reject(err);
+          }
+        }, 30000);
+
         this.client.on('join', () => {
+          clearTimeout(connectionTimeout);
           this.connected = true;
           logger.info(`[Bedrock] ${this.username} joined successfully`);
+          
+          // Initialize smart pathfinder for Bedrock
+          this.initializeSmartPathfinder();
+          
           this.emit('spawn');
           resolve();
         });
 
         this.client.on('error', (err: Error) => {
+          clearTimeout(connectionTimeout);
           logger.error(`[Bedrock] Connection error: ${err.message}`);
           this.emit('error', err);
           reject(err);
         });
 
         this.client.on('disconnect', (packet: any) => {
+          clearTimeout(connectionTimeout);
           logger.warn(`[Bedrock] ${this.username} disconnected: ${packet.reason || 'Unknown'}`);
           this.connected = false;
           this.emit('kicked', packet.reason || 'Disconnected');
         });
 
         this.client.on('close', () => {
+          clearTimeout(connectionTimeout);
           this.connected = false;
           this.emit('end');
         });
@@ -650,18 +842,52 @@ export class BedrockEditionClient implements IMinecraftClient {
   async moveTo(position: Position): Promise<boolean> {
     if (!this.client) return false;
     
-    // Send move player packet
-    this.client.write('move_player', {
-      runtime_id: 1, // Player runtime ID
-      position: { x: position.x, y: position.y, z: position.z },
-      pitch: 0,
-      yaw: 0,
-      head_yaw: 0,
-      mode: 'normal',
-      on_ground: true
-    });
+    // Use smart pathfinder for intelligent movement
+    if (this.pathExecutor) {
+      try {
+        const success = await this.pathExecutor.navigateTo(position);
+        if (success) return true;
+      } catch (error) {
+        logger.debug(`[Bedrock] Smart pathfinder failed: ${error}`);
+      }
+    }
     
-    this.position = position;
+    // Fallback: Smooth interpolated movement
+    const currentPos = this.getPosition();
+    const distance = Math.sqrt(
+      Math.pow(position.x - currentPos.x, 2) +
+      Math.pow(position.z - currentPos.z, 2)
+    );
+    
+    // Calculate number of steps for smooth movement
+    const steps = Math.max(5, Math.ceil(distance / 0.5));
+    const stepDelay = 50; // 50ms between steps
+    
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const interpolatedPos: Position = {
+        x: currentPos.x + (position.x - currentPos.x) * t,
+        y: currentPos.y + (position.y - currentPos.y) * t,
+        z: currentPos.z + (position.z - currentPos.z) * t
+      };
+      
+      const yaw = this.calculateYaw(this.position, position);
+      
+      this.client.write('move_player', {
+        runtime_id: 1,
+        position: { x: interpolatedPos.x, y: interpolatedPos.y, z: interpolatedPos.z },
+        pitch: 0,
+        yaw: yaw,
+        head_yaw: yaw,
+        mode: 'normal',
+        on_ground: true
+      });
+      
+      this.position = interpolatedPos;
+      
+      await new Promise(resolve => setTimeout(resolve, stepDelay));
+    }
+    
     return true;
   }
 

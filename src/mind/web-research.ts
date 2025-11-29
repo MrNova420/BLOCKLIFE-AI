@@ -13,10 +13,15 @@
  * Toggle-able feature that can be enabled/disabled from dashboard.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { createLogger } from '../utils/logger';
 import { getSystemStatus, EventCategory, LogLevel } from '../utils/system-status';
 
 const logger = createLogger('web-research');
+
+// Persistent config file path
+const CONFIG_FILE_PATH = './data/web-research-config.json';
 
 // ============================================================================
 // CONFIGURATION
@@ -102,7 +107,11 @@ export class WebResearchManager {
   
   private constructor() {
     this.config = { ...DEFAULT_CONFIG };
-    logger.info('Web Research Manager initialized (disabled by default)');
+    
+    // Load persisted config from disk (makes toggle persistent!)
+    this.loadPersistedConfig();
+    
+    logger.info(`Web Research Manager initialized (${this.config.enabled ? 'ENABLED' : 'disabled'})`);
   }
   
   static getInstance(): WebResearchManager {
@@ -113,24 +122,80 @@ export class WebResearchManager {
   }
   
   // ============================================================================
+  // PERSISTENT CONFIGURATION - Toggle stays on/off until changed!
+  // ============================================================================
+  
+  /**
+   * Load persisted configuration from disk
+   * This ensures the web research toggle stays on/off across restarts
+   */
+  private loadPersistedConfig(): void {
+    try {
+      // Ensure data directory exists
+      const dir = path.dirname(CONFIG_FILE_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      if (fs.existsSync(CONFIG_FILE_PATH)) {
+        const data = fs.readFileSync(CONFIG_FILE_PATH, 'utf-8');
+        const savedConfig = JSON.parse(data);
+        
+        // Apply saved config
+        this.config = { ...this.config, ...savedConfig };
+        
+        logger.info(`Loaded persisted web research config: enabled=${this.config.enabled}`);
+      }
+    } catch (error) {
+      logger.warn('Could not load persisted web research config:', error);
+    }
+  }
+  
+  /**
+   * Save configuration to disk for persistence
+   * This makes the toggle PROJECT-WIDE and PERSISTENT
+   */
+  private savePersistedConfig(): void {
+    try {
+      // Ensure data directory exists
+      const dir = path.dirname(CONFIG_FILE_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(this.config, null, 2));
+      logger.debug('Web research config persisted to disk');
+    } catch (error) {
+      logger.warn('Could not save web research config:', error);
+    }
+  }
+  
+  // ============================================================================
   // CONFIGURATION
   // ============================================================================
   
   /**
-   * Enable or disable web research
+   * Enable or disable web research - PERSISTS ACROSS RESTARTS!
+   * When you toggle this, it stays on/off for the entire project
    */
   setEnabled(enabled: boolean): void {
     this.config.enabled = enabled;
+    
+    // SAVE TO DISK - This makes it persistent!
+    this.savePersistedConfig();
     
     const status = getSystemStatus();
     status.logEvent({
       category: EventCategory.SYSTEM,
       level: LogLevel.INFO,
       source: 'web-research',
-      message: `Web research ${enabled ? 'ENABLED' : 'DISABLED'}`
+      message: `Web research ${enabled ? 'ENABLED' : 'DISABLED'} (persisted for entire project)`
     });
     
-    logger.info(`Web research ${enabled ? 'enabled' : 'disabled'}`);
+    logger.info(`Web research ${enabled ? 'enabled' : 'disabled'} - setting saved`);
+    console.log(`\n🌐 Web Research: ${enabled ? 'ENABLED ✅' : 'DISABLED ❌'}`);
+    console.log(`   This setting is now saved and will persist until you change it.`);
+    console.log(`   The AI can ${enabled ? 'now' : 'NOT'} search the web for information.\n`);
   }
   
   /**
@@ -141,11 +206,12 @@ export class WebResearchManager {
   }
   
   /**
-   * Update configuration
+   * Update configuration - PERSISTS!
    */
   updateConfig(config: Partial<WebResearchConfig>): void {
     this.config = { ...this.config, ...config };
-    logger.info('Web research configuration updated');
+    this.savePersistedConfig(); // Persist changes!
+    logger.info('Web research configuration updated and saved');
   }
   
   /**
