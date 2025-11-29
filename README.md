@@ -6,6 +6,20 @@ Copyright © 2025 WeNova Interactive / Kayden Shawn Massengill
 
 ---
 
+## ⚠️ Important: This is a LOCAL Application
+
+**BlockLife is NOT a website.** It is a local application that runs entirely on YOUR computer.
+
+- ✅ Runs locally on your machine
+- ✅ Dashboard at `localhost:3000` is only accessible from YOUR device
+- ✅ All data stays on your computer
+- ✅ No external servers, no cloud, no accounts required
+- ✅ AI runs locally via Ollama (on your machine)
+
+👉 **For detailed security and privacy information, see [SECURITY-AND-PRIVACY.md](SECURITY-AND-PRIVACY.md)**
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
@@ -226,6 +240,30 @@ blocklife-ai/
 - Use ECO mode in the dashboard
 - Reduce bot count
 - Use TinyLlama instead of larger models
+
+---
+
+## ❓ Frequently Asked Questions
+
+### Is this a website?
+**No.** BlockLife is a local application that runs on your computer. The "dashboard" at `localhost:3000` is just a control panel on YOUR machine - it's not a public website.
+
+### Does this collect my data?
+**No.** There are no external servers, no analytics, no tracking. Everything runs locally on your device.
+
+### What is "localhost:3000"?
+`localhost` means "your own computer." When you run BlockLife, it starts a local web server just for the control panel. Only you can access it from your device.
+
+### Do I need an account?
+**No.** There is no registration, no login, no accounts. Just run the application and use it.
+
+### Is my data sent anywhere?
+**No.** All bot data, village data, and settings stay on your computer. The only network connections are:
+1. To YOUR Minecraft server (that you specify)
+2. To Ollama running on YOUR machine (if you use AI features)
+
+### For more security information:
+See **[SECURITY-AND-PRIVACY.md](SECURITY-AND-PRIVACY.md)** for detailed information about data handling, network connections, and privacy.
 
 ---
 
