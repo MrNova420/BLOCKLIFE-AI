@@ -136,6 +136,17 @@ export class DashboardServer {
     });
   }
 
+  private getOllamaUrl(): string {
+    try {
+      const config = getConfig();
+      const host = config.ai?.ollama?.host || 'localhost';
+      const port = config.ai?.ollama?.port || 11434;
+      return `http://${host}:${port}`;
+    } catch {
+      return 'http://localhost:11434';
+    }
+  }
+
   private async checkOllamaStatus(): Promise<void> {
     try {
       // Check if Ollama is installed
@@ -143,7 +154,8 @@ export class DashboardServer {
       this.state.ollamaInstalled = true;
       
       // Check if Ollama is running
-      const response = await fetch('http://localhost:11434/api/tags', { 
+      const ollamaUrl = this.getOllamaUrl();
+      const response = await fetch(`${ollamaUrl}/api/tags`, { 
         signal: AbortSignal.timeout(2000) 
       });
       
@@ -349,7 +361,8 @@ export class DashboardServer {
       logger.info(`Installing model: ${model.ollamaName}`);
       
       // Pull the model using Ollama API
-      const response = await fetch('http://localhost:11434/api/pull', {
+      const ollamaUrl = this.getOllamaUrl();
+      const response = await fetch(`${ollamaUrl}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: model.ollamaName })
