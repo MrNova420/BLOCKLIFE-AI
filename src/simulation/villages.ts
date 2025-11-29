@@ -183,6 +183,72 @@ export class VillageManager {
   }
 
   /**
+   * Create a new village
+   */
+  createVillage(center: Position, name?: string): Village {
+    const village: Village = {
+      id: uuidv4(),
+      name: name || this.generateVillageName(),
+      centerPosition: center,
+      territory: {
+        min: { x: center.x - 32, y: center.y - 10, z: center.z - 32 },
+        max: { x: center.x + 32, y: center.y + 50, z: center.z + 32 }
+      },
+      memberIds: [],
+      founderIds: [],
+      structures: [],
+      stockpile: {
+        food: 50,
+        wood: 30,
+        stone: 20,
+        iron: 5,
+        gold: 0,
+        tools: 5,
+        weapons: 2
+      },
+      techAge: TechAge.STONE,
+      discoveries: [],
+      prosperity: 30,
+      defenseRating: 10,
+      leaderId: undefined,
+      councilIds: [],
+      laws: [],
+      culturalTraits: [],
+      traditions: [],
+      legends: [],
+      villageRelations: [],
+      foundedAt: Date.now(),
+      historicalEvents: [{
+        id: uuidv4(),
+        timestamp: Date.now(),
+        type: 'VILLAGE_FOUNDED',
+        participants: [],
+        location: `${center.x}, ${center.y}, ${center.z}`,
+        description: `The village of ${name || 'Unknown'} was founded`,
+        significance: 100
+      }]
+    };
+
+    this.registerVillage(village);
+    logger.info(`Village created: ${village.name}`);
+    
+    return village;
+  }
+
+  /**
+   * Generate a random village name
+   */
+  private generateVillageName(): string {
+    const prefixes = ['Oak', 'Pine', 'Stone', 'Iron', 'River', 'Hill', 'Moon', 'Sun', 'Golden', 'Silver'];
+    const suffixes = ['ford', 'haven', 'hold', 'stead', 'dale', 'vale', 'ridge', 'brook', 'ville', 'ton'];
+    
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+    
+    return `${prefix}${suffix}`;
+  }
+
+  /**
    * Get a village by ID
    */
   getVillage(villageId: string): Village | undefined {
