@@ -4,6 +4,13 @@
  * 
  * CRITICAL BRIDGE: Connects Bot Agents (AI decisions) to Minecraft Clients (in-game actions)
  * This is what makes bots actually DO things in the game.
+ * 
+ * ENHANCED FOR INTELLIGENT BEHAVIOR:
+ * - Smart pathfinding with obstacle avoidance
+ * - Stuck detection and recovery
+ * - Purposeful movement patterns
+ * - Task prioritization and chaining
+ * - Memory of good locations (farms, mines, etc.)
  */
 
 import { BotAgent } from './bot-agent';
@@ -15,8 +22,40 @@ import { getSystemStatus, EventCategory, LogLevel } from '../utils/system-status
 
 const logger = createLogger('bot-controller');
 
+// ============================================================================
+// SMART MOVEMENT HELPERS
+// ============================================================================
+
+interface MovementState {
+  lastPosition: Position | null;
+  stuckCounter: number;
+  lastMoveTime: number;
+  targetPosition: Position | null;
+  knownObstacles: Position[];
+  knownGoodLocations: Map<string, Position[]>; // 'farm', 'mine', 'wood', etc.
+}
+
+/**
+ * Calculate distance between two positions
+ */
+function distance(a: Position, b: Position): number {
+  return Math.sqrt(
+    Math.pow(a.x - b.x, 2) +
+    Math.pow(a.y - b.y, 2) +
+    Math.pow(a.z - b.z, 2)
+  );
+}
+
+/**
+ * Check if two positions are approximately equal
+ */
+function positionsEqual(a: Position, b: Position, tolerance: number = 0.5): boolean {
+  return distance(a, b) < tolerance;
+}
+
 /**
  * Bot Controller - Executes bot decisions in Minecraft
+ * Now with intelligent movement and stuck detection!
  */
 export class BotController {
   private botAgent: BotAgent;
@@ -24,7 +63,25 @@ export class BotController {
   private isExecuting: boolean = false;
   private currentAction: string = 'idle';
   private lastActionTime: number = 0;
-  private actionCooldown: number = 1000; // 1 second between actions
+  private actionCooldown: number = 800; // Slightly faster action rate
+  
+  // Smart movement tracking
+  private movement: MovementState = {
+    lastPosition: null,
+    stuckCounter: 0,
+    lastMoveTime: 0,
+    targetPosition: null,
+    knownObstacles: [],
+    knownGoodLocations: new Map()
+  };
+  
+  // Action history for smarter behavior
+  private actionHistory: string[] = [];
+  private maxActionHistory: number = 20;
+  
+  // Task completion tracking
+  private taskStartTime: number = 0;
+  private maxTaskDuration: number = 60000; // 1 minute max per task
 
   constructor(botAgent: BotAgent) {
     this.botAgent = botAgent;
@@ -108,6 +165,7 @@ export class BotController {
   /**
    * Execute the bot's current task in Minecraft
    * This is called every tick to make the bot actually DO things
+   * Enhanced with stuck detection and smart recovery!
    */
   async tick(): Promise<void> {
     if (!this.isConnected() || this.isExecuting) return;
@@ -115,9 +173,23 @@ export class BotController {
     const now = Date.now();
     if (now - this.lastActionTime < this.actionCooldown) return;
     
+    // Check if bot is stuck
+    await this.checkAndHandleStuck();
+    
     const task = this.botAgent.getCurrentTask();
     if (!task) {
-      await this.executeIdle();
+      // No task - but don't just idle, be productive based on role!
+      await this.executeRoleBasedAction();
+      return;
+    }
+    
+    // Check for task timeout
+    if (this.taskStartTime === 0) {
+      this.taskStartTime = now;
+    } else if (now - this.taskStartTime > this.maxTaskDuration) {
+      logger.debug(`${this.botAgent.name} task timed out: ${task.type}`);
+      this.botAgent.completeCurrentTask();
+      this.taskStartTime = 0;
       return;
     }
 
@@ -125,6 +197,9 @@ export class BotController {
     this.lastActionTime = now;
 
     try {
+      // Record action for history
+      this.recordAction(task.type);
+      
       switch (task.type) {
         case 'SLEEP':
           await this.executeSleep();
@@ -160,42 +235,256 @@ export class BotController {
           await this.executeSocialize();
           break;
         default:
-          await this.executeIdle();
+          await this.executeRoleBasedAction();
       }
 
-      // Update task progress
-      task.progress = Math.min(100, task.progress + 10);
+      // Update task progress (faster completion)
+      task.progress = Math.min(100, task.progress + 15);
       
       // Complete task if done
       if (task.progress >= 100) {
         this.botAgent.completeCurrentTask();
+        this.taskStartTime = 0;
         logger.debug(`${this.botAgent.name} completed task: ${task.type}`);
       }
 
     } catch (error) {
       logger.error(`${this.botAgent.name} action error: ${error}`);
+      // On error, try to recover
+      await this.handleActionError();
     } finally {
       this.isExecuting = false;
+    }
+  }
+  
+  /**
+   * Check if the bot is stuck and handle recovery
+   */
+  private async checkAndHandleStuck(): Promise<void> {
+    if (!this.client) return;
+    
+    const currentPos = this.client.getPosition();
+    const now = Date.now();
+    
+    if (this.movement.lastPosition) {
+      const movedDistance = distance(currentPos, this.movement.lastPosition);
+      
+      // If we should have moved but didn't
+      if (this.movement.targetPosition && movedDistance < 0.3 && 
+          now - this.movement.lastMoveTime > 3000) {
+        this.movement.stuckCounter++;
+        
+        if (this.movement.stuckCounter >= 3) {
+          logger.debug(`${this.botAgent.name} appears stuck, attempting recovery`);
+          await this.recoverFromStuck();
+          this.movement.stuckCounter = 0;
+        }
+      } else if (movedDistance > 1) {
+        // We moved successfully
+        this.movement.stuckCounter = 0;
+      }
+    }
+    
+    this.movement.lastPosition = { ...currentPos };
+    this.movement.lastMoveTime = now;
+  }
+  
+  /**
+   * Recover from being stuck
+   */
+  private async recoverFromStuck(): Promise<void> {
+    if (!this.client) return;
+    
+    this.botAgent.addRecentEvent('Got stuck, finding a new path');
+    
+    // Try jumping
+    this.client.jump();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Try turning and moving in a different direction
+    const pos = this.client.getPosition();
+    const escapeDirections = [
+      { x: pos.x + 3, z: pos.z },
+      { x: pos.x - 3, z: pos.z },
+      { x: pos.x, z: pos.z + 3 },
+      { x: pos.x, z: pos.z - 3 },
+      { x: pos.x + 2, z: pos.z + 2 },
+      { x: pos.x - 2, z: pos.z - 2 }
+    ];
+    
+    // Try each direction until one works
+    const randomDir = escapeDirections[Math.floor(Math.random() * escapeDirections.length)];
+    const escapePos: Position = {
+      x: randomDir.x,
+      y: pos.y,
+      z: randomDir.z
+    };
+    
+    // Mark current area as potentially problematic
+    if (this.movement.targetPosition) {
+      this.movement.knownObstacles.push({ ...this.movement.targetPosition });
+      // Keep obstacle list manageable
+      if (this.movement.knownObstacles.length > 20) {
+        this.movement.knownObstacles.shift();
+      }
+    }
+    
+    await this.smartMoveTo(escapePos);
+  }
+  
+  /**
+   * Handle action errors gracefully
+   */
+  private async handleActionError(): Promise<void> {
+    // Reset current task on repeated errors
+    const recentErrors = this.actionHistory.filter(a => a === 'ERROR').length;
+    if (recentErrors > 3) {
+      this.botAgent.completeCurrentTask();
+      this.taskStartTime = 0;
+      this.actionHistory = [];
+    }
+  }
+  
+  /**
+   * Record an action to history
+   */
+  private recordAction(action: string): void {
+    this.actionHistory.push(action);
+    if (this.actionHistory.length > this.maxActionHistory) {
+      this.actionHistory.shift();
+    }
+  }
+  
+  /**
+   * Execute role-based action when no specific task
+   * This makes bots productive even without explicit AI commands
+   */
+  private async executeRoleBasedAction(): Promise<void> {
+    if (!this.client) return;
+    
+    const role = this.botAgent.getRole();
+    const needs = this.botAgent.getNeeds();
+    
+    // First, check critical needs
+    if (needs.hunger > 80) {
+      await this.executeEat();
+      return;
+    }
+    if (needs.energy > 85) {
+      await this.executeSleep();
+      return;
+    }
+    
+    // Then do role-appropriate work
+    switch (role) {
+      case 'FARMER':
+        await this.executeFarming({ id: 'auto', type: 'FARMING', startedAt: Date.now(), progress: 0, priority: 1 });
+        break;
+      case 'MINER':
+        await this.executeMining({ id: 'auto', type: 'MINING', startedAt: Date.now(), progress: 0, priority: 1 });
+        break;
+      case 'LUMBERJACK':
+        await this.executeWoodcutting();
+        break;
+      case 'BUILDER':
+        await this.executeBuilding({ id: 'auto', type: 'BUILDING', startedAt: Date.now(), progress: 0, priority: 1 });
+        break;
+      case 'GUARD':
+        await this.executePatrol();
+        break;
+      case 'HUNTER':
+      case 'SCOUT':
+        await this.executeExplore();
+        break;
+      default:
+        // Default productive action - gather resources or explore
+        if (Math.random() < 0.5) {
+          await this.executeExplore();
+        } else {
+          await this.executeWoodcutting();
+        }
     }
   }
 
   /**
    * Idle behavior - look around, small movements
+   * Now more purposeful - bots don't just stand around
    */
   private async executeIdle(): Promise<void> {
     if (!this.client) return;
     this.currentAction = 'idle';
     
-    // Occasionally look around
-    if (Math.random() < 0.1) {
-      const pos = this.client.getPosition();
-      const lookPos: Position = {
-        x: pos.x + (Math.random() - 0.5) * 10,
-        y: pos.y + (Math.random() - 0.5) * 2,
-        z: pos.z + (Math.random() - 0.5) * 10
+    // Instead of truly idling, do something productive
+    await this.executeRoleBasedAction();
+  }
+  
+  /**
+   * Smart movement that avoids obstacles and known problem areas
+   */
+  private async smartMoveTo(target: Position): Promise<boolean> {
+    if (!this.client) return false;
+    
+    // Check if target is in known obstacles
+    const isNearObstacle = this.movement.knownObstacles.some(
+      obs => distance(obs, target) < 3
+    );
+    
+    if (isNearObstacle) {
+      // Adjust target to avoid obstacle
+      target = {
+        x: target.x + (Math.random() - 0.5) * 6,
+        y: target.y,
+        z: target.z + (Math.random() - 0.5) * 6
       };
-      this.client.lookAt(lookPos);
     }
+    
+    this.movement.targetPosition = target;
+    
+    try {
+      const success = await this.client.moveTo(target);
+      
+      if (success) {
+        // Update agent position
+        this.botAgent.setPosition(this.client.getPosition());
+      }
+      
+      return success;
+    } catch (error) {
+      logger.debug(`${this.botAgent.name} movement failed: ${error}`);
+      return false;
+    }
+  }
+  
+  /**
+   * Remember a good location for future use
+   */
+  private rememberLocation(type: string, pos: Position): void {
+    if (!this.movement.knownGoodLocations.has(type)) {
+      this.movement.knownGoodLocations.set(type, []);
+    }
+    
+    const locations = this.movement.knownGoodLocations.get(type)!;
+    
+    // Don't add duplicates
+    if (!locations.some(l => distance(l, pos) < 5)) {
+      locations.push({ ...pos });
+      
+      // Keep list manageable
+      if (locations.length > 10) {
+        locations.shift();
+      }
+    }
+  }
+  
+  /**
+   * Get a known good location for a resource type
+   */
+  private getKnownLocation(type: string): Position | null {
+    const locations = this.movement.knownGoodLocations.get(type);
+    if (locations && locations.length > 0) {
+      return locations[Math.floor(Math.random() * locations.length)];
+    }
+    return null;
   }
 
   /**
@@ -525,22 +814,34 @@ export class BotController {
   }
 
   /**
-   * Move to a random nearby location
+   * Move to a random nearby location with smart pathfinding
    */
   private async moveRandomly(radius: number): Promise<void> {
     if (!this.client) return;
     
     const pos = this.client.getPosition();
-    const targetPos: Position = {
-      x: pos.x + (Math.random() - 0.5) * radius * 2,
-      y: pos.y,
-      z: pos.z + (Math.random() - 0.5) * radius * 2
-    };
     
-    await this.client.moveTo(targetPos);
+    // Generate a target that's not in known obstacle areas
+    let attempts = 0;
+    let targetPos: Position;
     
-    // Update bot agent position
-    this.botAgent.setPosition(this.client.getPosition());
+    do {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * radius;
+      
+      targetPos = {
+        x: pos.x + Math.cos(angle) * dist,
+        y: pos.y,
+        z: pos.z + Math.sin(angle) * dist
+      };
+      
+      attempts++;
+    } while (
+      attempts < 5 && 
+      this.movement.knownObstacles.some(obs => distance(obs, targetPos) < 3)
+    );
+    
+    await this.smartMoveTo(targetPos);
   }
 
   /**

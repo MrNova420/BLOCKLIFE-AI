@@ -24,6 +24,7 @@ import { getConsciousnessManager } from './mind/bot-consciousness';
 import { getWebResearch } from './mind/web-research';
 import { getAICommander } from './mind/ai-commander';
 import { getStabilityManager, HealthStatus } from './utils/stability-manager';
+import { getCentralAIBrain } from './mind/central-ai-brain';
 
 const logger = createLogger('main');
 
@@ -89,6 +90,16 @@ async function initializeSystems(): Promise<void> {
   // Initialize AI Commander
   console.log(`  ${GREEN}✓${RESET} AI Commander ready for natural language commands`);
   const commander = getAICommander();
+  
+  // Initialize Central AI Brain - the master controller
+  console.log(`  ${GREEN}✓${RESET} Central AI Brain initializing...`);
+  const aiBrain = getCentralAIBrain();
+  status.updateComponentStatus(
+    SystemComponent.AI_ENGINE,
+    'ONLINE',
+    'Central AI Brain ready - autonomous control enabled'
+  );
+  console.log(`    ${DIM}Full autonomous control of all bots enabled${RESET}`);
   
   // Initialize Memory System
   console.log(`  ${GREEN}✓${RESET} Memory and logging systems active`);
@@ -203,12 +214,20 @@ async function main(): Promise<void> {
     'Ready to start simulation'
   );
   
+  // Start the Central AI Brain (autonomous bot management)
+  const aiBrain = getCentralAIBrain();
+  aiBrain.start();
+  
   // Display startup info
   displayStartupInfo(dashboardPort);
   
   // Handle shutdown signals
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`\n${YELLOW}Received ${signal}, shutting down gracefully...${RESET}`);
+    
+    // Stop AI Brain
+    const aiBrain = getCentralAIBrain();
+    aiBrain.stop();
     
     // Stop stability manager first to save state
     const stability = getStabilityManager();

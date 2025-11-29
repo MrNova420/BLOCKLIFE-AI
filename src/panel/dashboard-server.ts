@@ -4,6 +4,11 @@
  * 
  * Full-featured web dashboard for controlling BlockLife.
  * Provides UI for server configuration, AI model management, and bot control.
+ * 
+ * ENHANCED WITH AUTO-MANAGEMENT:
+ * - Automatic bot management via AutoManager
+ * - Progress reports and status updates
+ * - Full AI control over civilization
  */
 
 import http from 'http';
@@ -22,6 +27,7 @@ import { getWebResearch } from '../mind/web-research';
 import { getConsciousnessManager } from '../mind/bot-consciousness';
 import { getProgressionTracker, ProgressionCategory } from '../utils/progression-tracker';
 import { getStabilityManager } from '../utils/stability-manager';
+import { getAutoManager } from '../utils/auto-manager';
 import { MinecraftEdition } from '../types';
 
 const execAsync = promisify(exec);
