@@ -50,14 +50,17 @@ The core foundation of BlockLife has been implemented.
 - [x] Startup scripts (scripts/)
 - [x] README documentation
 
-### Phase 1: Survival (Week 3-4) - IN PROGRESS
+### Phase 1: Survival ✅ MOSTLY COMPLETE
 - [x] Needs system (implemented in bot-agent.ts)
 - [x] Rule-based survival (fallback decisions in ai-client.ts)
 - [x] AI stub integration (StubAiClient)
 - [x] State persistence (JsonStorage)
-- [ ] Basic dashboard
-- [ ] Minecraft connection (mineflayer integration)
-- [ ] Basic perception (nearby blocks, entities, time)
+- [x] Basic dashboard (tools/dashboard.ts)
+- [x] World adapter stub (src/world/mc-adapter.ts)
+- [x] Pathfinding utilities (src/world/pathfinding.ts)
+- [x] History & lore system (src/lore/history.ts)
+- [x] Self-aware dialogue generator (src/lore/dialogue.ts)
+- [ ] Real Minecraft connection (mineflayer integration - future)
 
 ### Phase 2: Tribe (Week 5-7)
 - [ ] Bot collective
