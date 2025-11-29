@@ -20,6 +20,7 @@ import { getSystemStatus } from '../utils/system-status';
 import { getWebResearch } from '../mind/web-research';
 import { getConsciousnessManager } from '../mind/bot-consciousness';
 import { getProgressionTracker, ProgressionCategory } from '../utils/progression-tracker';
+import { getStabilityManager } from '../utils/stability-manager';
 
 const execAsync = promisify(exec);
 const logger = createLogger('dashboard');
@@ -245,6 +246,9 @@ export class DashboardServer {
         
         case '/api/system/events':
           return this.sendJson(res, this.getSystemEvents(url));
+        
+        case '/api/system/health':
+          return this.sendJson(res, this.getSystemHealth());
         
         case '/api/bot/memories':
           return this.sendJson(res, this.getBotMemories(url));
@@ -797,6 +801,48 @@ export class DashboardServer {
       return {
         success: true,
         data: formattedEvents
+      };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  private getSystemHealth(): any {
+    try {
+      const stability = getStabilityManager();
+      const health = stability.getHealth();
+      
+      // Format times as human-readable
+      const lastCheck = new Date(health.lastHealthCheck).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      return {
+        success: true,
+        data: {
+          status: health.status,
+          memory: {
+            usedMb: health.memory.usedMb,
+            totalMb: health.memory.totalMb,
+            percent: health.memory.percent,
+            status: health.memory.status
+          },
+          cpu: {
+            percent: health.cpu.percent,
+            status: health.cpu.status,
+            throttled: health.cpu.throttled
+          },
+          uptime: health.uptime.formatted,
+          lastHealthCheck: lastCheck,
+          consecutiveFailures: health.consecutiveFailures,
+          isThrottled: health.isThrottled,
+          currentMode: health.currentMode,
+          readyFor24x7: stability.isReadyFor24x7()
+        }
       };
     } catch (error) {
       return { success: false, error: String(error) };

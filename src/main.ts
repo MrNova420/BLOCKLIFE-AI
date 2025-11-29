@@ -11,6 +11,7 @@
  * - Natural language commands
  * - Web research capability (toggle-able)
  * - Java & Bedrock Edition support
+ * - 24/7 stability with automatic recovery
  */
 
 import { Orchestrator, getOrchestrator } from './orchestrator';
@@ -22,6 +23,7 @@ import { getMinecraftDataSource } from './knowledge/minecraft-data-source';
 import { getConsciousnessManager } from './mind/bot-consciousness';
 import { getWebResearch } from './mind/web-research';
 import { getAICommander } from './mind/ai-commander';
+import { getStabilityManager, HealthStatus } from './utils/stability-manager';
 
 const logger = createLogger('main');
 
@@ -96,6 +98,26 @@ async function initializeSystems(): Promise<void> {
     'Bot memories and event logging active'
   );
   
+  // Initialize Stability Manager for 24/7 operation
+  console.log(`  ${GREEN}✓${RESET} Stability manager ready ${DIM}(24/7 operation enabled)${RESET}`);
+  const stability = getStabilityManager();
+  stability.start();
+  
+  // Set up stability callbacks
+  stability.onHealthChange((health) => {
+    if (health.status === HealthStatus.CRITICAL) {
+      logger.warn('System health critical - automatic recovery in progress');
+    }
+  });
+  
+  stability.onThrottle((throttled) => {
+    if (throttled) {
+      logger.info('System throttled to protect device');
+    } else {
+      logger.info('Throttle released - resuming normal operation');
+    }
+  });
+  
   console.log(`\n${GREEN}All systems initialized successfully!${RESET}\n`);
 }
 
@@ -113,11 +135,19 @@ function displayStartupInfo(dashboardPort: number): void {
     hour12: true
   });
   
+  // Get stability info
+  const stability = getStabilityManager();
+  const health = stability.getHealth();
+  const healthEmoji = health.status === HealthStatus.HEALTHY ? '✅' : 
+                      health.status === HealthStatus.WARNING ? '⚠️' : '🔴';
+  
   console.log(`${CYAN}╔══════════════════════════════════════════════════════════════════════════╗${RESET}`);
   console.log(`${CYAN}║${RESET}                         ${BOLD}${WHITE}BLOCKLIFE IS READY${RESET}                              ${CYAN}║${RESET}`);
   console.log(`${CYAN}╠══════════════════════════════════════════════════════════════════════════╣${RESET}`);
   console.log(`${CYAN}║${RESET}                                                                          ${CYAN}║${RESET}`);
   console.log(`${CYAN}║${RESET}  ${WHITE}Current Time:${RESET} ${currentTime}                    ${CYAN}║${RESET}`);
+  console.log(`${CYAN}║${RESET}  ${WHITE}System Health:${RESET} ${healthEmoji} ${health.status}                                              ${CYAN}║${RESET}`);
+  console.log(`${CYAN}║${RESET}  ${WHITE}24/7 Mode:${RESET} ${GREEN}Enabled${RESET} - Auto-recovery and device protection active       ${CYAN}║${RESET}`);
   console.log(`${CYAN}║${RESET}                                                                          ${CYAN}║${RESET}`);
   console.log(`${CYAN}║${RESET}  ${YELLOW}★${RESET} ${BOLD}Web Dashboard:${RESET}  ${GREEN}http://localhost:${dashboardPort}${RESET}                          ${CYAN}║${RESET}`);
   console.log(`${CYAN}║${RESET}                                                                          ${CYAN}║${RESET}`);
@@ -180,6 +210,10 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`\n${YELLOW}Received ${signal}, shutting down gracefully...${RESET}`);
     
+    // Stop stability manager first to save state
+    const stability = getStabilityManager();
+    stability.stop();
+    
     status.updateComponentStatus(SystemComponent.DASHBOARD, 'OFFLINE', 'Shutting down');
     status.updateComponentStatus(SystemComponent.SIMULATION_ENGINE, 'OFFLINE', 'Shutting down');
     
@@ -193,10 +227,16 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   
-  // Handle uncaught errors
+  // Handle uncaught errors - with recovery instead of shutdown
   process.on('uncaughtException', (error) => {
     logger.error('Uncaught exception', error);
-    shutdown('uncaughtException');
+    const stability = getStabilityManager();
+    // Don't shutdown on every error - let stability manager handle recovery
+    if (stability.getHealth().consecutiveFailures >= 5) {
+      shutdown('uncaughtException');
+    } else {
+      logger.warn('Attempting to recover from error...');
+    }
   });
   
   process.on('unhandledRejection', (reason) => {
