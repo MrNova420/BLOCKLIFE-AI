@@ -133,6 +133,7 @@ export class JavaEditionClient implements IMinecraftClient {
   private config: MinecraftConfig;
   private username: string;
   private connected: boolean = false;
+  // eslint-disable-next-line @typescript-eslint/ban-types
   private eventHandlers: Map<string, Set<Function>> = new Map();
   
   // Smart pathfinding
@@ -547,6 +548,7 @@ export class JavaEditionClient implements IMinecraftClient {
     if (handlers) {
       for (const handler of handlers) {
         try {
+          // eslint-disable-next-line @typescript-eslint/ban-types
           (handler as Function)(...args);
         } catch (error) {
           logger.error(`Event handler error: ${error}`);
@@ -568,6 +570,7 @@ export class BedrockEditionClient implements IMinecraftClient {
   private config: MinecraftConfig;
   private username: string;
   private connected: boolean = false;
+  // eslint-disable-next-line @typescript-eslint/ban-types
   private eventHandlers: Map<string, Set<Function>> = new Map();
   
   // State tracking (Bedrock protocol requires manual tracking)
@@ -1138,6 +1141,7 @@ export class BedrockEditionClient implements IMinecraftClient {
     if (handlers) {
       for (const handler of handlers) {
         try {
+          // eslint-disable-next-line @typescript-eslint/ban-types
           (handler as Function)(...args);
         } catch (error) {
           logger.error(`Event handler error: ${error}`);

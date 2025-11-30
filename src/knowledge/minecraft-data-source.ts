@@ -8,7 +8,6 @@
  * Sources: PrismarineJS/minecraft-data (extracted from Minecraft game files)
  */
 
-// @ts-ignore - minecraft-data doesn't have types but is well-documented
 import minecraftData from 'minecraft-data';
 import { createLogger } from '../utils/logger';
 
