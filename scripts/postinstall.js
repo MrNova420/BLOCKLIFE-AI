@@ -28,6 +28,16 @@ function logStep(step, msg) {
   console.log(`${COLORS.cyan}[${step}]${COLORS.reset} ${msg}`);
 }
 
+// Check if a module is available
+function checkModule(moduleName) {
+  try {
+    require(moduleName);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   console.log('\n');
   log('╔════════════════════════════════════════════════════════════╗', 'cyan');
@@ -37,7 +47,7 @@ async function main() {
   console.log('\n');
 
   // Step 1: Create required directories
-  logStep('1/5', 'Creating directories...');
+  logStep('1/6', 'Creating directories...');
   const dirs = [
     'data',
     'data/logs',
@@ -55,7 +65,7 @@ async function main() {
   }
 
   // Step 2: Create default config if not exists
-  logStep('2/5', 'Setting up configuration...');
+  logStep('2/6', 'Setting up configuration...');
   const configPath = 'config/default.json';
   if (!fs.existsSync(configPath)) {
     const defaultConfig = {
@@ -107,8 +117,42 @@ async function main() {
     log('  ✓ Configuration already exists', 'green');
   }
 
-  // Step 3: Check for Ollama
-  logStep('3/5', 'Checking for Ollama AI runtime...');
+  // Step 3: Check optional dependencies
+  logStep('3/6', 'Checking optional features...');
+  
+  const sqliteAvailable = checkModule('better-sqlite3');
+  const bedrockAvailable = checkModule('bedrock-protocol');
+  
+  // node-llama-cpp requires dynamic import (ESM)
+  let llamaAvailable = false;
+  try {
+    // Just check if the package directory exists
+    const llamaPath = path.join(process.cwd(), 'node_modules', 'node-llama-cpp');
+    llamaAvailable = fs.existsSync(llamaPath);
+  } catch {
+    llamaAvailable = false;
+  }
+
+  if (sqliteAvailable) {
+    log('  ✓ SQLite storage (better-sqlite3) - faster data storage', 'green');
+  } else {
+    log('  ⚠ SQLite storage - not available (using JSON fallback)', 'yellow');
+  }
+
+  if (bedrockAvailable) {
+    log('  ✓ Bedrock Edition support - connect to Bedrock servers', 'green');
+  } else {
+    log('  ⚠ Bedrock Edition - not available (Java Edition works)', 'yellow');
+  }
+
+  if (llamaAvailable) {
+    log('  ✓ Local AI models (node-llama-cpp) - run AI locally', 'green');
+  } else {
+    log('  ⚠ Local AI models - not available (use Ollama instead)', 'yellow');
+  }
+
+  // Step 4: Check for Ollama
+  logStep('4/6', 'Checking for Ollama AI runtime...');
   let ollamaInstalled = false;
   
   try {
@@ -120,28 +164,37 @@ async function main() {
     log('    Install from: https://ollama.com/download', 'yellow');
   }
 
-  // Step 4: Try to pull default model if Ollama is available
-  logStep('4/5', 'Checking AI models...');
+  // Step 5: Try to check Ollama models
+  logStep('5/6', 'Checking AI models...');
   if (ollamaInstalled) {
     try {
-      // Check if Ollama is running
-      const response = await fetch('http://localhost:11434/api/tags', {
-        signal: AbortSignal.timeout(2000)
-      }).catch(() => null);
-      
-      if (response && response.ok) {
-        const data = await response.json();
-        const models = data.models?.map(m => m.name) || [];
-        
-        if (models.length === 0) {
-          log('  ℹ No AI models installed yet', 'blue');
-          log('  ℹ You can install models from the dashboard after starting BlockLife', 'blue');
-          log('  ℹ Or run: ollama pull tinyllama', 'blue');
-        } else {
-          log(`  ✓ Found ${models.length} AI model(s): ${models.slice(0, 3).join(', ')}${models.length > 3 ? '...' : ''}`, 'green');
-        }
+      // Check if fetch is available (Node.js 18+)
+      if (typeof fetch === 'undefined') {
+        log('  ℹ Skipping Ollama check (Node.js 18+ required for fetch)', 'blue');
+        log('  ℹ BlockLife will check for models when started', 'blue');
       } else {
-        log('  ⚠ Ollama is not running - start it with: ollama serve', 'yellow');
+        // Check if Ollama is running
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch('http://localhost:11434/api/tags', {
+          signal: controller.signal
+        }).catch(() => null).finally(() => clearTimeout(timeoutId));
+        
+        if (response && response.ok) {
+          const data = await response.json();
+          const models = data.models?.map(m => m.name) || [];
+          
+          if (models.length === 0) {
+            log('  ℹ No AI models installed yet', 'blue');
+            log('  ℹ You can install models from the dashboard after starting BlockLife', 'blue');
+            log('  ℹ Or run: ollama pull tinyllama', 'blue');
+          } else {
+            log(`  ✓ Found ${models.length} AI model(s): ${models.slice(0, 3).join(', ')}${models.length > 3 ? '...' : ''}`, 'green');
+          }
+        } else {
+          log('  ⚠ Ollama is not running - start it with: ollama serve', 'yellow');
+        }
       }
     } catch (e) {
       log('  ⚠ Could not check Ollama status', 'yellow');
@@ -151,8 +204,8 @@ async function main() {
     log('  ℹ BlockLife will use built-in rule-based AI instead', 'blue');
   }
 
-  // Step 5: Create .gitignore for data files
-  logStep('5/5', 'Finalizing setup...');
+  // Step 6: Finalize
+  logStep('6/6', 'Finalizing setup...');
   const gitignorePath = '.gitignore';
   const gitignoreAdditions = [
     '',
@@ -177,15 +230,25 @@ async function main() {
   log('╚════════════════════════════════════════════════════════════╝', 'green');
   console.log('\n');
   
+  // Show feature summary
+  log('Available Features:', 'bright');
+  log('  ✓ Core simulation engine', 'green');
+  log('  ✓ Web dashboard at http://localhost:3000', 'green');
+  log('  ✓ Java Edition Minecraft support', 'green');
+  log('  ✓ Built-in AI rules', 'green');
+  if (sqliteAvailable) log('  ✓ SQLite storage (faster)', 'green');
+  if (bedrockAvailable) log('  ✓ Bedrock Edition support', 'green');
+  if (llamaAvailable) log('  ✓ Local AI models', 'green');
+  if (ollamaInstalled) log('  ✓ Ollama AI integration', 'green');
+  console.log('');
+  
   log('To start BlockLife:', 'bright');
   console.log('');
   log('  npm start', 'cyan');
   console.log('');
-  log('This will:', 'bright');
-  log('  1. Open the web dashboard at http://localhost:3000');
-  log('  2. Let you configure your Minecraft server');
-  log('  3. Choose and install AI models');
-  log('  4. Start the civilization simulation');
+  log('Or use the start script for auto-restart:', 'bright');
+  console.log('');
+  log('  bash scripts/start.sh', 'cyan');
   console.log('\n');
   log('Enjoy BlockLife! 🌍', 'green');
   console.log('\n');

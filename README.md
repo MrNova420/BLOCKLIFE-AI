@@ -195,12 +195,63 @@ Edit `config/default.json`:
 
 ## Termux Setup (Android)
 
+BlockLife works on Android via Termux. There are two setup options depending on what features you need.
+
+### Option 1: Quick Setup (Basic Features)
+
+This gets you running quickly with core features:
+
 ```bash
-pkg install nodejs
+pkg update && pkg install nodejs-lts git python clang make
 git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
 cd BLOCKLIFE-AI
-npm install && npm start
+bash scripts/setup-termux.sh
 ```
+
+**Features available:**
+- ✅ Core simulation engine
+- ✅ Web dashboard
+- ✅ Java Edition Minecraft
+- ✅ Ollama AI / Built-in rules
+- ⚠️ Bedrock Edition (may not compile)
+- ⚠️ Local AI models (may not compile)
+
+### Option 2: Full Setup (All Features)
+
+For Bedrock Edition and local AI models, use proot-distro to run a full Linux environment:
+
+```bash
+pkg update && pkg install proot-distro
+git clone https://github.com/MrNova420/BLOCKLIFE-AI.git
+cd BLOCKLIFE-AI
+bash scripts/setup-termux-full.sh
+```
+
+This installs Ubuntu inside Termux where native modules compile properly.
+
+**Features available:**
+- ✅ Everything from Quick Setup
+- ✅ Bedrock Edition Minecraft
+- ✅ Local AI models (node-llama-cpp)
+- ✅ SQLite storage (faster)
+
+### Running After Full Setup
+
+```bash
+# Enter the Ubuntu environment
+proot-distro login ubuntu
+
+# Start BlockLife
+cd ~/BLOCKLIFE-AI
+npm start
+```
+
+### Tips for Termux
+
+- **Full Setup recommended** for Bedrock Edition or local AI
+- **Quick Setup** is fine for Java Edition with Ollama
+- Use **ECO mode** for better battery life
+- Data is stored in the `data/` directory
 
 ---
 
@@ -240,6 +291,39 @@ blocklife-ai/
 - Use ECO mode in the dashboard
 - Reduce bot count
 - Use TinyLlama instead of larger models
+
+### Bedrock Edition not working on Termux?
+
+The `bedrock-protocol` package requires native compilation which may fail on standard Termux. 
+
+**Solution:** Use the full setup with proot-distro:
+```bash
+bash scripts/setup-termux-full.sh
+```
+
+This runs Ubuntu inside Termux where native modules compile properly.
+
+### Local AI models not working on Termux?
+
+The `node-llama-cpp` package requires native compilation. Use the full setup:
+```bash
+bash scripts/setup-termux-full.sh
+```
+
+Or use Ollama instead (works without native compilation):
+```bash
+# Install Ollama and pull a model
+ollama pull tinyllama
+ollama serve
+```
+
+### Error: "gyp: Undefined variable android_ndk_path"
+
+This error occurs when native modules try to compile on Termux without Android NDK.
+
+**Solutions:**
+1. **For basic features:** Run `bash scripts/setup-termux.sh` - core features work without native modules
+2. **For all features:** Run `bash scripts/setup-termux-full.sh` - uses Ubuntu via proot-distro
 
 ---
 
