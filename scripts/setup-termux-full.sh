@@ -44,8 +44,13 @@ proot-distro install ubuntu
 echo ""
 echo "[3/5] Setting up Ubuntu environment..."
 
-# Create setup script for inside Ubuntu
-cat > /tmp/blocklife-ubuntu-setup.sh << 'UBUNTU_SCRIPT'
+# Get the ubuntu rootfs directory
+UBUNTU_ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu"
+
+# Create setup script inside the ubuntu rootfs so it's accessible from proot
+SETUP_SCRIPT="$UBUNTU_ROOTFS/root/blocklife-setup.sh"
+
+cat > "$SETUP_SCRIPT" << 'UBUNTU_SCRIPT'
 #!/bin/bash
 echo "Setting up Ubuntu environment..."
 
@@ -111,13 +116,16 @@ echo ""
 echo "To start BlockLife:"
 echo "  cd ~/BLOCKLIFE-AI && npm start"
 echo ""
+
+# Clean up setup script
+rm -f ~/blocklife-setup.sh
 UBUNTU_SCRIPT
 
-chmod +x /tmp/blocklife-ubuntu-setup.sh
+chmod +x "$SETUP_SCRIPT"
 
 echo ""
 echo "[4/5] Running setup inside Ubuntu..."
-proot-distro login ubuntu -- /bin/bash /tmp/blocklife-ubuntu-setup.sh
+proot-distro login ubuntu -- /bin/bash /root/blocklife-setup.sh
 
 echo ""
 echo "========================================"

@@ -243,6 +243,7 @@ export class SqliteStorage implements StorageLayer {
     
     // Dynamic import to get Database constructor
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Database = require('better-sqlite3');
       this.db = new Database(this.dbPath);
       this.db.pragma('journal_mode = WAL');
@@ -562,6 +563,7 @@ let storageInstance: StorageLayer | null = null;
  */
 export function isSqliteAvailable(): boolean {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('better-sqlite3');
     return true;
   } catch {
@@ -576,6 +578,7 @@ export function isSqliteAvailable(): boolean {
 export function initializeStorage(config: DataConfig): StorageLayer {
   if (isSqliteAvailable()) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Database = require('better-sqlite3');
       storageInstance = new SqliteStorage(config, Database);
       logger.info('Storage layer initialized with SQLite (better-sqlite3)');

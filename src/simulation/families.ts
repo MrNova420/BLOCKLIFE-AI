@@ -316,6 +316,7 @@ export class FamilyManager {
     }
     
     // Check village resources
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const village = require('./villages').getVillageManager().getVillage(bot1.villageId);
     if (village && village.stockpile.food < 50) {
       return { can: false, reason: 'Insufficient food in village' };

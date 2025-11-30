@@ -603,6 +603,7 @@ export function info(text: string): string {
  * Strip ANSI codes from string
  */
 export function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
@@ -616,10 +617,11 @@ export function padString(str: string, width: number, align: 'left' | 'right' | 
   switch (align) {
     case 'right':
       return ' '.repeat(padAmount) + str;
-    case 'center':
+    case 'center': {
       const leftPad = Math.floor(padAmount / 2);
       const rightPad = padAmount - leftPad;
       return ' '.repeat(leftPad) + str + ' '.repeat(rightPad);
+    }
     default:
       return str + ' '.repeat(padAmount);
   }

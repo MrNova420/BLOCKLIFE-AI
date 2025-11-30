@@ -447,10 +447,10 @@ export class KnowledgeAcquisitionManager {
     const steps: string[] = [];
     
     // Look for numbered lists
-    const numberedMatches = content.match(/(?:^|\n)\s*(\d+)[\.\)]\s*([^\n]+)/g);
+    const numberedMatches = content.match(/(?:^|\n)\s*(\d+)[.)]\s*([^\n]+)/g);
     if (numberedMatches) {
       for (const match of numberedMatches) {
-        const cleaned = match.replace(/^\s*\d+[\.\)]\s*/, '').trim();
+        const cleaned = match.replace(/^\s*\d+[.)]\s*/, '').trim();
         if (cleaned.length > 10 && cleaned.length < 200) {
           steps.push(cleaned);
         }
@@ -480,14 +480,14 @@ export class KnowledgeAcquisitionManager {
     // Look for tip indicators
     const tipPatterns = [
       /(?:tip|hint|note|pro tip):\s*([^\n]+)/gi,
-      /(?:^|\n)\s*[•\-\*]\s*([^\n]+)/g
+      /(?:^|\n)\s*[•\-*]\s*([^\n]+)/g
     ];
     
     for (const pattern of tipPatterns) {
       const matches = content.match(pattern);
       if (matches) {
         for (const match of matches) {
-          const cleaned = match.replace(/^[\s•\-\*]+|(?:tip|hint|note|pro tip):\s*/gi, '').trim();
+          const cleaned = match.replace(/^[\s•\-*]+|(?:tip|hint|note|pro tip):\s*/gi, '').trim();
           if (cleaned.length > 10 && cleaned.length < 200 && !tips.includes(cleaned)) {
             tips.push(cleaned);
           }
