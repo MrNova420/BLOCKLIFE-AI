@@ -3,6 +3,8 @@
 **A Living Minecraft Civilization Engine**
 
 Copyright © 2025 WeNova Interactive / Kayden Shawn Massengill
+[![Status: Under Development](https://img.shields.io/badge/status-under--development-orange.svg)]()
+[![Partially Ready to Use](https://img.shields.io/badge/Partially%20Ready%20to%20Use-Partially%20Ready%20to%20Use.svg)]()
 
 ---
 
